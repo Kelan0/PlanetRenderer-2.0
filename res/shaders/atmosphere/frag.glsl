@@ -1,25 +1,24 @@
 #version 450 core
 
-const int sampleCount = 16;
-const float PI = 3.14159265358979323846264338327950288;
-const vec3 directionToLight = vec3(0.26726, 0.8018, 0.5345); // [1, 3, 2]
+const int viewraySampleCount = 16;
+const int lightraySampleCount = 8;
+
+const float PI = 3.14159265358979323846264338327950; // 32 d.p
 
 in vec2 fs_vertexPosition;
 
 uniform mat4 invProjectionMatrix;
 uniform mat4 invViewMatrix;
 
-//uniform vec3 directionToLight;
 uniform vec3 localCameraPosition;
 uniform float innerRadius;
 uniform float outerRadius;
-
-uniform vec3 invWavelength;
-uniform float eSun;         // Kr * ESun
-uniform float kr;           // Kr
-uniform float km;           // Kr
-uniform float scaleDepth;   // The height where the average atmospheric density is found
-uniform float g;            // Mie scattering constant
+uniform float rayleighHeight;
+uniform float mieHeight;
+uniform float sunIntensity;
+uniform vec3 sunDirection;
+uniform vec3 rayleighWavelength;
+uniform vec3 mieWavelength;
 
 out vec4 outColour;
 
@@ -32,111 +31,119 @@ vec3 getRayDirection() {
 
 	return normalize(coord.xyz);
 }
-float getMiePhase(float fc, float fcSq, float g, float g2) {
-	return 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fcSq) / pow(1.0 + g2 - 2.0 * g * fc, 1.5);
-}
 
-float getRayleighPhase(float fcSq) {
-	return 0.75 * (1.0 + fcSq);
-}
-
-bool getSphereIntersection(vec3 rayOrigin, vec3 rayDir, float radius, inout float near, inout float far) {
+bool getSphereIntersection(vec3 rayOrigin, vec3 rayDir, float radius, inout float viewrayNear, inout float viewrayFar) {
 	float heightSq = dot(rayOrigin, rayOrigin); // distance squared from ray origin to planet center. Planet is at [0,0,0] in local space
 	float b = 2.0 * dot(rayOrigin, rayDir);
 	float c = heightSq - (radius * radius);
 	float det = b * b - 4.0 * c;
 	
 	if (det <= 0.0) {
-		near = 1.0;
-		far = -1.0;
+		viewrayNear = 1.0;
+		viewrayFar = -1.0;
 	} else {
         det = sqrt(det);
-		near = 0.5 * (-b - det);
-		far = 0.5 * (-b + det);
+		viewrayNear = 0.5 * (-b - det);
+		viewrayFar = 0.5 * (-b + det);
 	}
-	return far > near;
-}
-
-float density(float height) {
-	float invScale = 1.0 / ((outerRadius - innerRadius) * scaleDepth);
-	//scaling the density curve, such that it crosses the y-axis at 1, and the x-axis at the atmosphere height (fOuterRadius - fInnerRadius)
-	float curDens = exp(invScale * (innerRadius - height));
-	float minDens = exp(invScale * (innerRadius - outerRadius)); // cache this and pass it as a parameter...
-	
-	return max(0.0, (curDens - minDens) / (1.0 - minDens));
-}
-
-float optic(vec3 start, vec3 end) { //gets the average density between start and end
-	vec3 incr = (end - start) / float(sampleCount);
-	vec3 point = start + incr * 0.5;
-	
-	float sum = 0.0;
-	for (int i = 0; i < sampleCount; i++) {
-		sum += density(length(point)); // length(point) is the distance to the planet center, since the planet is at [0,0,0] in local space
-		point += incr;
-	}
-	
-	return sum * (length(incr) / (outerRadius - innerRadius));
-}
-
-void checkValidFragment(vec3 rayDir) { //check if this fragment is behind the horizon, or above the atmosphere.
-	float n = 0.0;
-	float f = 0.0;
-	if (getSphereIntersection(localCameraPosition, rayDir, innerRadius, n, f) && f > abs(n)) {
-		//if the ray intersects the inner radius (the planet), and the near value is on the other side of the planet, discard this fragment.
-		discard;
-	}
+	return viewrayFar > viewrayNear;
 }
 
 void main(void) {
-	float cameraHeight = length(localCameraPosition); // distance between planet center and camera
-	float n, f;
-	bool aboveAtmosphere = cameraHeight > outerRadius;
-	
+	vec3 rayOrig = localCameraPosition;
 	vec3 rayDir = getRayDirection();
-	
-	checkValidFragment(rayDir);
-	getSphereIntersection(localCameraPosition, rayDir, outerRadius, n, f);
 
-    if (aboveAtmosphere && n < 0.0) {
-        discard;
-    }
-	
-	vec3 sampleStart = (aboveAtmosphere ? localCameraPosition + rayDir * n : localCameraPosition);
-	float rayLength = aboveAtmosphere ? f - n : f;
-	
-	float sampleHeight, sampleDensity;
-	float temp;
-	
-	vec3 sampleIncr = rayDir * (rayLength / float(sampleCount));
-	vec3 samplePoint = sampleStart + sampleIncr * 0.5;
-	
-	vec3 frontColour = vec3(0.0);
-	
-	for(int i = 0; i < sampleCount; i++) {
-		sampleHeight = length(samplePoint); // distance between planet center and sample point
-		sampleDensity = density(sampleHeight);
-		
-		float lightDist = 0.0;
-		getSphereIntersection(samplePoint, directionToLight, outerRadius, temp, lightDist);
-		
-		vec3 u = samplePoint + directionToLight * lightDist;
-		float n = (optic(sampleStart, samplePoint) + optic(samplePoint, u)) * (PI * 4.0);
-		
-		frontColour += sampleDensity * exp(-n * (kr * invWavelength + km));
-		samplePoint += sampleIncr;
+	bool insideAtmosphere = dot(rayOrig, rayOrig) < outerRadius * outerRadius;
+
+	float viewrayNear = 0.0;
+	float viewrayFar = 0.0;
+
+	if (!getSphereIntersection(rayOrig, rayDir, outerRadius, viewrayNear, viewrayFar) || viewrayFar <= 0.0 || (!insideAtmosphere && abs(viewrayNear) > viewrayFar)) {
+		discard;
+	}
+
+	//float innerNear = 0.0;
+	//float innerFar = 0.0;
+	//if (getSphereIntersection(rayOrig, rayDir, innerRadius, innerNear, innerFar) && innerNear > 0.0) {
+	//	viewrayFar = innerNear;
+	//}
+
+	if (insideAtmosphere) {
+		viewrayNear = 0.0;
 	}
 	
-	vec3 atmospherePos = localCameraPosition + rayDir * (aboveAtmosphere ? n : f);
-	vec3 c0 = frontColour * (invWavelength * kr * eSun);
-	vec3 c1 = max(frontColour * km * eSun, 0.01);
-	vec3 t0 = localCameraPosition - atmospherePos;
-	
-	float g2 = g * g;
-	float fc = dot(directionToLight, t0) / length(t0);
-	float fcSq = fc * fc;
-	vec3 colour = getRayleighPhase(fcSq) * c0 + getMiePhase(fc, fcSq, g, g2) * c1;
+	const float viewraySegmentLength = (viewrayFar - viewrayNear) / float(viewraySampleCount);
 
-	outColour = vec4(colour, 1.0);
+	const float g = 0.76;
+	const float mu = dot(rayDir, sunDirection);
+	const float rayleighPhase = 3.0 / (16.0 * PI) * (1.0 + mu * mu);
+	const float miePhase = 3.0 / (8.0 * PI) * ((1.0 - g * g) * (1.0 + mu * mu)) / ((2.0 + g * g) * pow(1.0 + g * g - 2.0 * g * mu, 1.5));
+
+	vec3 rayleighSum = vec3(0.0);
+	vec3 mieSum = vec3(0.0);
+	vec3 viewraySamplePoint;
+	float viewraySampleHeight;
+	float viewrayRayleighOptic = 0.0;
+	float viewrayMieOptic = 0.0;
+	float viewrayCurrSample = viewrayNear;
+	float hr, hm;
+
+	vec3 lightraySamplePoint;
+	float lightraySampleHeight;
+	float lightrayRayleighOptic;
+	float lightrayMieOptic;
+	float lightrayCurrSample;
+	float lightraySegmentLength;
+	float lightrayNear;
+	float lightrayFar;
+
+	int i, j;
+	
+	for (i = 0; i < viewraySampleCount; i++) {
+		viewraySamplePoint = rayOrig + rayDir * (viewrayCurrSample + viewraySegmentLength * 0.5);
+		viewraySampleHeight = length(viewraySamplePoint) - innerRadius;
+
+		hr = exp(-viewraySampleHeight / rayleighHeight) * viewraySegmentLength;
+		hm = exp(-viewraySampleHeight / mieHeight) * viewraySegmentLength;
+
+		viewrayRayleighOptic += hr;
+		viewrayMieOptic += hm;
+
+		lightrayNear = 0.0;
+		lightrayFar = 0.0;
+		getSphereIntersection(viewraySamplePoint, sunDirection, outerRadius, lightrayNear, lightrayFar);
+		// Assuming this intersection happens. It should in most cases.
+
+		lightraySegmentLength = lightrayFar / float(lightraySampleCount);
+		lightrayCurrSample = 0.0;
+		lightrayRayleighOptic = 0.0;
+		lightrayMieOptic = 0.0;
+
+		for (j = 0; j < lightraySampleCount; j++) {
+			lightraySamplePoint = viewraySamplePoint + sunDirection * (lightrayCurrSample + lightraySegmentLength * 0.5);
+			lightraySampleHeight = length(lightraySamplePoint) - innerRadius;
+
+			if (lightraySampleHeight < 0.0) {
+				break; // TODO: use terrain height values to determine if ray is under terrain surface. Decode position from depth buffer.
+			}
+
+			// TODO: precompute these optical depth values and send them via uniforms.
+			lightrayRayleighOptic += exp(-lightraySampleHeight / rayleighHeight) * lightraySegmentLength;
+			lightrayMieOptic += exp(-lightraySampleHeight / mieHeight) * lightraySegmentLength;
+			lightrayCurrSample += lightraySegmentLength;
+		}
+
+		if (j == lightraySampleCount) {
+			vec3 tau = rayleighWavelength * (viewrayRayleighOptic + lightrayRayleighOptic) + 1.1 * mieWavelength * (viewrayMieOptic + lightrayMieOptic);
+			vec3 att = exp(-tau);
+
+			rayleighSum += att * hr;
+			mieSum += att * hm;
+		}
+
+		viewrayCurrSample += viewraySegmentLength;
+	}
+	vec3 colour = (rayleighSum * rayleighWavelength * rayleighPhase + mieSum * mieWavelength * miePhase) * 22.0;
+	outColour = vec4(vec3(colour), 1.0);
     gl_FragDepth = 0.999999;
 }
