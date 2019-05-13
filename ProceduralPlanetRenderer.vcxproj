@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{8C5C50C7-0883-4040-9C98-9DB89B89E706}</ProjectGuid>
+    <RootNamespace>ProceduralPlanetRenderer</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.17763.0\ucrt;C:\Library\include;src\main;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <IncludePath>C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.17763.0\ucrt;C:\Library\include;src\main;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.17763.0\ucrt;C:\Library\include;src\main;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>C:\Program Files %28x86%29\Windows Kits\10\Include\10.0.17763.0\ucrt;C:\Library\include;src\main;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Library\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>C:\Library\lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;glew32.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>echo Deleting $(SolutionDir)$(Platform)\$(Configuration)\res
+del /s /q $(SolutionDir)$(Platform)\$(Configuration)\res
+
+echo Copying "$(ProjectDir)res" to "$(SolutionDir)$(Platform)\$(Configuration)\res"
+xcopy $(ProjectDir)res  $(SolutionDir)$(Platform)\$(Configuration)\res /e /i /y /s
+
+echo Copying "C:\Library\bin\$(Platform)\*.dll" to "$(SolutionDir)$(Platform)\$(Configuration)"
+xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuration) /e /i /y /s</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Library\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>C:\Library\lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;glew32.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>echo Deleting $(SolutionDir)$(Platform)\$(Configuration)\res
+del /s /q $(SolutionDir)$(Platform)\$(Configuration)\res
+
+echo Copying "$(ProjectDir)res" to "$(SolutionDir)$(Platform)\$(Configuration)\res"
+xcopy $(ProjectDir)res  $(SolutionDir)$(Platform)\$(Configuration)\res /e /i /y /s
+
+echo Copying "C:\Library\bin\$(Platform)\*.dll" to "$(SolutionDir)$(Platform)\$(Configuration)"
+xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuration) /e /i /y /s</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Library\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>C:\Library\lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;glew32.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>echo Deleting $(SolutionDir)$(Platform)\$(Configuration)\res
+del /s /q $(SolutionDir)$(Platform)\$(Configuration)\res
+
+echo Copying "$(ProjectDir)res" to "$(SolutionDir)$(Platform)\$(Configuration)\res"
+xcopy $(ProjectDir)res  $(SolutionDir)$(Platform)\$(Configuration)\res /e /i /y /s
+
+echo Copying "C:\Library\bin\$(Platform)\*.dll" to "$(SolutionDir)$(Platform)\$(Configuration)"
+xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuration) /e /i /y /s</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Library\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>C:\Library\lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;glew32.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>echo Deleting $(SolutionDir)$(Platform)\$(Configuration)\res
+del /s /q $(SolutionDir)$(Platform)\$(Configuration)\res
+
+echo Copying "$(ProjectDir)res" to "$(SolutionDir)$(Platform)\$(Configuration)\res"
+xcopy $(ProjectDir)res  $(SolutionDir)$(Platform)\$(Configuration)\res /e /i /y /s
+
+echo Copying "C:\Library\bin\$(Platform)\*.dll" to "$(SolutionDir)$(Platform)\$(Configuration)"
+xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuration) /e /i /y /s</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main\core\engine\terrain\AtmosphereRenderer.cpp" />
+    <ClCompile Include="src\main\core\engine\scene\bounding\AxisAlignedBB.cpp" />
+    <ClCompile Include="src\main\core\engine\scene\bounding\BoundingTests.cpp" />
+    <ClCompile Include="src\main\core\engine\scene\bounding\Frustum.cpp" />
+    <ClCompile Include="src\main\core\engine\terrain\Planet.cpp" />
+    <ClCompile Include="src\main\core\engine\geometry\HeightMapDisplacement.cpp" />
+    <ClCompile Include="src\main\core\engine\scene\components\FunctionComponent.cpp" />
+    <ClCompile Include="src\main\core\engine\scene\components\RenderComponent.cpp" />
+    <ClCompile Include="src\main\core\engine\scene\SceneGraph.cpp" />
+    <ClCompile Include="src\main\core\engine\scene\GameObject.cpp" />
+    <ClCompile Include="src\main\core\engine\renderer\Camera.cpp" />
+    <ClCompile Include="src\main\core\util\InputHandler.cpp" />
+    <ClCompile Include="src\main\core\util\ResourceHandler.cpp" />
+    <ClCompile Include="src\main\core\engine\renderer\ShaderProgram.cpp" />
+    <ClCompile Include="src\main\core\engine\renderer\GLMesh.cpp" />
+    <ClCompile Include="src\main\core\engine\geometry\MeshData.cpp" />
+    <ClCompile Include="src\main\core\util\Logger.cpp" />
+    <ClCompile Include="src\main\core\engine\Engine.cpp" />
+    <ClCompile Include="src\main\core\application\Application.cpp" />
+    <ClCompile Include="src\main\core\util\Time.cpp" />
+    <ClCompile Include="src\main\demo\Main.cpp" />
+    <ClCompile Include="src\main\core\util\Timer.cpp" />
+    <ClCompile Include="src\main\core\engine\scene\Transformation.cpp" />
+    <ClCompile Include="src\main\core\engine\terrain\TerrainQuad.cpp" />
+    <ClCompile Include="src\main\core\engine\terrain\TerrainRenderer.cpp" />
+    <ClCompile Include="src\main\core\engine\terrain\TerrainGenerator.cpp" />
+    <ClCompile Include="src\main\FastNoise\FastNoise.cpp" />
+    <ClCompile Include="src\main\core\engine\terrain\TileSupplier.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\main\core\engine\terrain\AtmosphereRenderer.h" />
+    <ClInclude Include="src\main\core\engine\scene\bounding\BoundingVolume.h" />
+    <ClInclude Include="src\main\core\engine\terrain\Planet.h" />
+    <ClInclude Include="src\main\core\engine\geometry\Displacement.h" />
+    <ClInclude Include="src\main\core\engine\scene\components\FunctionComponent.h" />
+    <ClInclude Include="src\main\core\engine\scene\components\RenderComponent.h" />
+    <ClInclude Include="src\main\core\engine\scene\SceneGraph.h" />
+    <ClInclude Include="src\main\core\engine\scene\GameComponent.h" />
+    <ClInclude Include="src\main\core\engine\scene\GameObject.h" />
+    <ClInclude Include="src\main\core\engine\renderer\Camera.h" />
+    <ClInclude Include="src\main\core\util\InputHandler.h" />
+    <ClInclude Include="src\main\core\util\ResourceHandler.h" />
+    <ClInclude Include="src\main\core\engine\renderer\ShaderProgram.h" />
+    <ClInclude Include="src\main\core\engine\renderer\GLMesh.h" />
+    <ClInclude Include="src\main\core\engine\geometry\MeshData.h" />
+    <ClInclude Include="src\main\core\util\Logger.h" />
+    <ClInclude Include="src\main\core\Core.h" />
+    <ClInclude Include="src\main\core\event\Event.h" />
+    <ClInclude Include="src\main\core\event\EventHandler.h" />
+    <ClInclude Include="src\main\core\engine\Engine.h" />
+    <ClInclude Include="src\main\core\application\Application.h" />
+    <ClInclude Include="src\main\core\util\Container.h" />
+    <ClInclude Include="src\main\core\util\Time.h" />
+    <ClInclude Include="src\main\core\util\Timer.h" />
+    <ClInclude Include="src\main\core\engine\scene\Transformation.h" />
+    <ClInclude Include="src\main\core\engine\terrain\TerrainQuad.h" />
+    <ClInclude Include="src\main\core\engine\terrain\TerrainRenderer.h" />
+    <ClInclude Include="src\main\core\engine\terrain\TerrainGenerator.h" />
+    <ClInclude Include="src\main\FastNoise\FastNoise.h" />
+    <ClInclude Include="src\main\core\engine\terrain\TileSupplier.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\shaders\default\frag.glsl" />
+    <None Include="res\shaders\default\vert.glsl" />
+    <None Include="res\shaders\simpleTerrain\comp.glsl" />
+    <None Include="res\shaders\atmosphere\frag.glsl" />
+    <None Include="res\shaders\simpleTerrain\frag.glsl" />
+    <None Include="res\shaders\simpleTerrain\heightComp.glsl" />
+    <None Include="res\shaders\atmosphere\vert.glsl" />
+    <None Include="res\shaders\simpleTerrain\vert.glsl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
