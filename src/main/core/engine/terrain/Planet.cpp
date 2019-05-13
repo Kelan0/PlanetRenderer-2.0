@@ -7,7 +7,6 @@
 #include "core/engine/terrain/TerrainQuad.h"
 #include "core/engine/terrain/TerrainRenderer.h"
 #include "core/engine/terrain/AtmosphereRenderer.h"
-#include "core/engine/terrain/TerrainGenerator.h"
 #include "core/engine/terrain/TileSupplier.h"
 #include "core/engine/scene/bounding/BoundingVolume.h"
 #include "core/util/InputHandler.h"

@@ -1,7 +1,6 @@
 #include "TileSupplier.h"
 #include "core/application/Application.h"
 #include "core/engine/renderer/ShaderProgram.h"
-#include "core/engine/terrain/TerrainGenerator.h"
 #include "core/engine/terrain/TerrainQuad.h"
 #include "core/engine/terrain/Planet.h"
 #include "core/util/Logger.h"
@@ -231,7 +230,6 @@ double TileData::getMinHeight() const {
 uint32 timerQuery;
 TileSupplier::TileSupplier(Planet* planet, uint32 seed, uint32 textureCapacity, uint32 textureSize) {
 	this->planet = planet;
-	this->generator = new TerrainGenerator(seed);
 
 	if (textureCapacity == 0) {
 		int32 layers;

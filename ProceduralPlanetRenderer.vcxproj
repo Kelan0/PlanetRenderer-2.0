@@ -210,6 +210,8 @@ xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuratio
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\main\core\engine\renderer\FrameBuffer.cpp" />
+    <ClCompile Include="src\main\core\engine\renderer\ScreenRenderer.cpp" />
     <ClCompile Include="src\main\core\engine\terrain\AtmosphereRenderer.cpp" />
     <ClCompile Include="src\main\core\engine\scene\bounding\AxisAlignedBB.cpp" />
     <ClCompile Include="src\main\core\engine\scene\bounding\BoundingTests.cpp" />
@@ -235,11 +237,11 @@ xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuratio
     <ClCompile Include="src\main\core\engine\scene\Transformation.cpp" />
     <ClCompile Include="src\main\core\engine\terrain\TerrainQuad.cpp" />
     <ClCompile Include="src\main\core\engine\terrain\TerrainRenderer.cpp" />
-    <ClCompile Include="src\main\core\engine\terrain\TerrainGenerator.cpp" />
-    <ClCompile Include="src\main\FastNoise\FastNoise.cpp" />
     <ClCompile Include="src\main\core\engine\terrain\TileSupplier.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\main\core\engine\renderer\FrameBuffer.h" />
+    <ClInclude Include="src\main\core\engine\renderer\ScreenRenderer.h" />
     <ClInclude Include="src\main\core\engine\terrain\AtmosphereRenderer.h" />
     <ClInclude Include="src\main\core\engine\scene\bounding\BoundingVolume.h" />
     <ClInclude Include="src\main\core\engine\terrain\Planet.h" />
@@ -267,8 +269,6 @@ xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuratio
     <ClInclude Include="src\main\core\engine\scene\Transformation.h" />
     <ClInclude Include="src\main\core\engine\terrain\TerrainQuad.h" />
     <ClInclude Include="src\main\core\engine\terrain\TerrainRenderer.h" />
-    <ClInclude Include="src\main\core\engine\terrain\TerrainGenerator.h" />
-    <ClInclude Include="src\main\FastNoise\FastNoise.h" />
     <ClInclude Include="src\main\core\engine\terrain\TileSupplier.h" />
   </ItemGroup>
   <ItemGroup>

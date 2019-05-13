@@ -6,7 +6,6 @@ class TerrainQuad;
 class Planet;
 class TileData;
 class TileSupplier;
-class TerrainGenerator;
 class ShaderProgram;
 
 class TileData {
@@ -145,7 +144,6 @@ private:
 	double asyncReadbackTimeout; // The maximum amount of time an asynchronous readback request is allowed to remain unresolved for. The request wil be cancelled after this.
 
 	ShaderProgram* tileGeneratorProgram; // The compute shader used to generate terrain tiles on the GPU.
-	TerrainGenerator* generator; // The terrain generator used to generate terrain tiles on the CPU.
 
 	uint32 numTexturesGenerated; // Debug info
 	uint32 numTilesExpired; // Debug info
