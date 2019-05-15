@@ -74,7 +74,8 @@ GLMesh::GLMesh(MeshData* meshData, VertexLayout attributes) :
 
 	glBindVertexArray(0);
 
-	uploadMeshData(meshData);
+	this->uploadMeshData(meshData);
+	this->setPrimitive(GL_TRIANGLES);
 }
 
 GLMesh::~GLMesh() {
@@ -124,27 +125,27 @@ void GLMesh::draw(int32 instances, int32 offset, int32 count, InstanceBuffer* in
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->indexBuffer);
 				if (instances == 1) {   // If there is only one instance to draw
 					if (count > 0)      // draw 1 instance of the indices between "offset" and "offset + count" in the index array
-						glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)offset);
+						glDrawElements(this->primitive, count, GL_UNSIGNED_INT, (void*)offset);
 					else                // draw 1 instance of the whole index buffer
-						glDrawElements(GL_TRIANGLES, this->indexCount, GL_UNSIGNED_INT, (void*)0);
+						glDrawElements(this->primitive, this->indexCount, GL_UNSIGNED_INT, (void*)0);
 				} else {                // If there are multiple instances to draw
 					if (count > 0)      // draw "instances" instances of the indices between "offset" and "offset + count" in the index array
-						glDrawElementsInstanced(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)offset, instances);
+						glDrawElementsInstanced(this->primitive, count, GL_UNSIGNED_INT, (void*)offset, instances);
 					else                // draw "instances" instances of the whole index buffer
-						glDrawElementsInstanced(GL_TRIANGLES, this->indexCount, GL_UNSIGNED_INT, (void*)0, instances);
+						glDrawElementsInstanced(this->primitive, this->indexCount, GL_UNSIGNED_INT, (void*)0, instances);
 				}
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			} else {                    // If there is no index buffer we want to draw arrays
 				if (instances == 1) {   // If there is only one instance to draw
 					if (count > 0)      // draw 1 instance of the vertices between "offset" and "offset + count" in the vertex array
-						glDrawArrays(GL_TRIANGLES, offset, count);
+						glDrawArrays(this->primitive, offset, count);
 					else                // draw 1 instance of the whole vertex buffer
-						glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+						glDrawArrays(this->primitive, 0, this->vertexCount);
 				} else {                // If there are multiple instances to draw
 					if (count > 0)      // draw "instances" instances of the vertices between "offset" and "offset + count" in the vertex array
-						glDrawArraysInstanced(GL_TRIANGLES, offset, count, instances);
+						glDrawArraysInstanced(this->primitive, offset, count, instances);
 					else                // draw "instances" instances of the whole vertices buffer
-						glDrawArraysInstanced(GL_TRIANGLES, 0, vertexCount, instances);
+						glDrawArraysInstanced(this->primitive, 0, this->vertexCount, instances);
 				}
 			}
 
@@ -158,6 +159,10 @@ void GLMesh::draw(int32 instances, int32 offset, int32 count, InstanceBuffer* in
 	glBindVertexArray(0);
 }
 
+void GLMesh::setPrimitive(uint32 primitive) {
+	this->primitive = primitive;
+}
+
 uint32 GLMesh::getVertexArray() {
 	return this->vertexArray;
 }
@@ -168,6 +173,10 @@ uint32 GLMesh::getVertexBuffer() {
 
 uint32 GLMesh::getIndexBuffer() {
 	return this->indexBuffer;
+}
+
+uint32 GLMesh::getPrimitive() const {
+	return this->primitive;
 }
 
 void GLMesh::bindVertexAttribLayout(VertexLayout layout) {

@@ -30,7 +30,9 @@ uniform sampler2DArray heightSampler;
 uniform bool overlayDebug;
 uniform bool showDebug;
 
-out vec4 outColour;
+out vec3 outDiffuse;
+out vec3 outNormal;
+out vec2 outSpecularEmission;
 
 vec4 getInterp(vec2 pos) {
     vec4 uvUV = vec4(pos.xy, vec2(1.0) - pos.xy);
@@ -74,11 +76,11 @@ void main(void) {
 
     if (overlayDebug) {
         vec3 debugColour = vec3(0.0, 1.0, 0.0);
-        outColour = vec4(mix(colour, debugColour, (fs_debug[2] * fs_debug[2]) * 0.5), 1.0);
+        outDiffuse = mix(colour, debugColour, (fs_debug[2] * fs_debug[2]) * 0.5).rgb;
     } else if (showDebug) {
-        outColour = vec4(fs_debug, 1.0);
+        outDiffuse = fs_debug.rgb;
     } else {
-        outColour = vec4(colour, 1.0);
+        outDiffuse = colour.rgb;
     }
 
     gl_FragDepth = log2(fs_flogz) * depthCoefficient * 0.5;

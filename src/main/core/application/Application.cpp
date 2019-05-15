@@ -1,6 +1,6 @@
 
 #include "core/application/Application.h"
-#include "core/engine/Engine.h"
+#include "core/engine/renderer/ScreenRenderer.h"
 #include "core/engine/scene/SceneGraph.h"
 #include "core/event/EventHandler.h"
 #include "core/util/ResourceHandler.h"
@@ -15,11 +15,11 @@ namespace Application {
 	bool running = true;
 	bool started = false;
 
-	Engine* engine = NULL;
 	EventHandler* eventHandler = NULL;
 	ResourceHandler* resourceHandler = NULL;
 	InputHandler* inputHandler = NULL;
 	SceneGraph* sceneGraph = NULL;
+	ScreenRenderer* screenRenderer = NULL;
 	Logger* logger = NULL;
 
 	SDL_Window* window = NULL;
@@ -34,11 +34,11 @@ namespace Application {
 	void(*postUpdateCallback)(double);
 
 	void Application::setup(char* execpath, int argc, char* argv[]) {
-		engine = new Engine();
 		eventHandler = new EventHandler();
 		resourceHandler = new ResourceHandler(execpath);
 		inputHandler = new InputHandler();
 		sceneGraph = new SceneGraph();
+		screenRenderer = new ScreenRenderer();
 		logger = new Logger();
 	}
 
@@ -91,11 +91,12 @@ namespace Application {
 		EVENT_HANDLER.subscribe(EventLambda(WindowResizeEvent) {
 			logInfo("Window resized");
 
-			glViewport(0, 0, windowWidth, windowHeight);
+			SCREEN_RENDERER.setResolution(uvec2(windowWidth, windowHeight));
 		});
 
 		INPUT_HANDLER.init();
 		SCENE_GRAPH.init();
+		SCREEN_RENDERER.init();
 
 		return true;
 	}
@@ -168,11 +169,10 @@ namespace Application {
 			// tick time history how many ticks are appropriate to run at once. If particalTicks
 			// accumulates too much, log a warning for skipped ticks, and reset it to zero.
 			while (partialTicks >= 1.0) {
-				engine->updateTickDeltaHistory(time_cast<time_unit, seconds, double>(time - lastTick));
+				//engine->updateTickDeltaHistory(time_cast<time_unit, seconds, double>(time - lastTick));
 				lastTick = time;
 
 				if (preUpdateCallback != NULL) preUpdateCallback(tdt);
-				engine->update(tdt);
 				sceneGraph->update(tdt);
 				if (postUpdateCallback != NULL) postUpdateCallback(tdt);
 				partialTicks--;
@@ -180,12 +180,14 @@ namespace Application {
 
 			double fdt = time_cast<time_unit, seconds, double>(time - lastFrame);
 			lastFrame = time;
-			engine->updateFrameDeltaHistory(fdt);
+			//engine->updateFrameDeltaHistory(fdt);
 
+			screenRenderer->bindScreenBuffer();
 			if (preRenderCallback != NULL) preRenderCallback(partialTicks, fdt);
-			engine->render(partialTicks, fdt);
 			sceneGraph->render(partialTicks, fdt);
 			if (postRenderCallback != NULL) postRenderCallback(partialTicks, fdt);
+			screenRenderer->render(partialTicks, fdt);
+
 			SDL_GL_SwapWindow(window);
 
 			sleep(1);
@@ -271,10 +273,6 @@ namespace Application {
 		return context;
 	}
 
-	Engine& Application::getEngine() {
-		return *engine;
-	}
-
 	EventHandler& Application::getEventHandler() {
 		return *eventHandler;
 	}
@@ -289,6 +287,10 @@ namespace Application {
 
 	SceneGraph& getSceneGraph() {
 		return *sceneGraph;
+	}
+
+	ScreenRenderer& getScreenRenderer() {
+		return *screenRenderer;
 	}
 
 	Logger& Application::getLogger() {

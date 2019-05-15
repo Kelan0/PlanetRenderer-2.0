@@ -44,6 +44,8 @@ private:
 	uint32 vertexBuffer;
 	uint32 indexBuffer;
 
+	uint32 primitive;
+
 	VertexLayout attributes;
 
 	int vertexCount;
@@ -57,11 +59,15 @@ public:
 
 	void draw(int32 instances = 1, int32 offset = 0, int32 count = 0, InstanceBuffer* instanceBuffer = NULL);
 
+	void setPrimitive(uint32 primitive);
+
 	uint32 getVertexArray();
 
 	uint32 getVertexBuffer();
 
 	uint32 getIndexBuffer();
+
+	uint32 getPrimitive() const;
 
 	static void bindVertexAttribLayout(VertexLayout layout);
 

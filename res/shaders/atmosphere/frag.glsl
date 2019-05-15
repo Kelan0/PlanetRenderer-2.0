@@ -20,7 +20,9 @@ uniform vec3 sunDirection;
 uniform vec3 rayleighWavelength;
 uniform vec3 mieWavelength;
 
-out vec4 outColour;
+out vec3 outDiffuse;
+out vec3 outNormal;
+out vec2 outSpecularEmission;
 
 vec3 getRayDirection() {
     vec2 screenPos = fs_vertexPosition * 2.0 - 1.0; // range [-1 to +1]
@@ -144,6 +146,6 @@ void main(void) {
 		viewrayCurrSample += viewraySegmentLength;
 	}
 	vec3 colour = (rayleighSum * rayleighWavelength * rayleighPhase + mieSum * mieWavelength * miePhase) * 22.0;
-	outColour = vec4(vec3(colour), 1.0);
+	outDiffuse = colour.rgb;
     gl_FragDepth = 0.999999;
 }

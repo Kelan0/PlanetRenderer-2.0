@@ -5,11 +5,11 @@
 #include "core/Core.h"
 #include "core/util/Logger.h"
 
-class Engine;
 class EventHandler;
 class ResourceHandler;
 class InputHandler;
 class SceneGraph;
+class ScreenRenderer;
 class Logger;
 
 // Maybe duplicating these definitions isn't a good idea...?
@@ -21,6 +21,7 @@ typedef void* SDL_GLContext;
 #define RESOURCE_HANDLER Application::getResourceHandler()
 #define INPUT_HANDLER Application::getInputHandler()
 #define SCENE_GRAPH Application::getSceneGraph()
+#define SCREEN_RENDERER Application::getScreenRenderer()
 #define LOGGER Application::getLogger()
 
 #define logInfo(str, ...) LOGGER.info(str, ##__VA_ARGS__)
@@ -89,8 +90,6 @@ namespace Application
 
 	SDL_GLContext getGLContext();
 
-	Engine& getEngine();
-
 	EventHandler& getEventHandler();
 
 	ResourceHandler& getResourceHandler();
@@ -98,6 +97,8 @@ namespace Application
 	InputHandler& getInputHandler();
 
 	SceneGraph& getSceneGraph();
+
+	ScreenRenderer& getScreenRenderer();
 
 	Logger& getLogger();
 };

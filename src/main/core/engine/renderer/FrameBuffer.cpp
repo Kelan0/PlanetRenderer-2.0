@@ -68,6 +68,34 @@ void FrameBuffer::createDepthBufferAttachmentMultisample(int32 width, int32 heig
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
 }
 
+bool FrameBuffer::checkStatus(bool printSuccess) {
+	glBindFramebuffer(GL_FRAMEBUFFER, this->frameBuffer);
+	int32 status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+	bool valid = true;
+	if (status != GL_FRAMEBUFFER_COMPLETE) {
+		valid = false;
+
+		logInfo("Framebuffer failed validation with error \"%s\"",
+			status == GL_FRAMEBUFFER_UNDEFINED ? "GL_FRAMEBUFFER_UNDEFINED" :
+			status == GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT ? "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT" :
+			status == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT ? "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT" :
+			status == GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER ? "GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER" :
+			status == GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER ? "GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER" :
+			status == GL_FRAMEBUFFER_UNSUPPORTED ? "GL_FRAMEBUFFER_UNSUPPORTED" :
+			status == GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE ? "GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE" :
+			status == GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS ? "GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS" :
+			"UNKNOWN_ERROR"
+		);
+
+	} else if (printSuccess) {
+		logInfo("Framebuffer successfully validated");
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	return valid;
+}
+
 uint32 FrameBuffer::genRenderBuffers() {
 	uint32 renderBuffer; // Add render buffer to internal array for later cleanup? It was created here, so this class should be responsible for deleting it.
 	glGenRenderbuffers(1, &renderBuffer);

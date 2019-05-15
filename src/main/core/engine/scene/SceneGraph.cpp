@@ -40,6 +40,11 @@ void SceneGraph::init() {
 }
 
 void SceneGraph::render(double partialTicks, double dt) {
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	if (this->wireframeMode == SHOW_FACES) {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	} else if (this->wireframeMode == SHOW_WIRES) {

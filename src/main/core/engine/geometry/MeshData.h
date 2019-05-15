@@ -20,7 +20,7 @@ struct Vertex {
 	fvec3 normal;
 	fvec2 texture;
 
-	Vertex(fvec3 position, fvec3 normal = fvec3(0.0), fvec2 texture = fvec2(0.0)) :
+	Vertex(fvec3 position = fvec3(0.0), fvec3 normal = fvec3(0.0), fvec2 texture = fvec2(0.0)) :
 		position(position), normal(normal), texture(texture) {}
 };
 

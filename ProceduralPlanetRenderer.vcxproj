@@ -229,7 +229,6 @@ xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuratio
     <ClCompile Include="src\main\core\engine\renderer\GLMesh.cpp" />
     <ClCompile Include="src\main\core\engine\geometry\MeshData.cpp" />
     <ClCompile Include="src\main\core\util\Logger.cpp" />
-    <ClCompile Include="src\main\core\engine\Engine.cpp" />
     <ClCompile Include="src\main\core\application\Application.cpp" />
     <ClCompile Include="src\main\core\util\Time.cpp" />
     <ClCompile Include="src\main\demo\Main.cpp" />
@@ -261,7 +260,6 @@ xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuratio
     <ClInclude Include="src\main\core\Core.h" />
     <ClInclude Include="src\main\core\event\Event.h" />
     <ClInclude Include="src\main\core\event\EventHandler.h" />
-    <ClInclude Include="src\main\core\engine\Engine.h" />
     <ClInclude Include="src\main\core\application\Application.h" />
     <ClInclude Include="src\main\core\util\Container.h" />
     <ClInclude Include="src\main\core\util\Time.h" />

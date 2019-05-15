@@ -28,6 +28,8 @@ public:
 
 	void createDepthBufferAttachmentMultisample(int32 width, int32 height, uint32 depthBuffer, uint32 samples);
 
+	bool checkStatus(bool printSuccess = false);
+
 	uint32 genRenderBuffers();
 };
 

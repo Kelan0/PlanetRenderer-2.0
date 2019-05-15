@@ -3,8 +3,10 @@
 #include "core/util/ResourceHandler.h"
 #include <GL/glew.h>
 
-ShaderProgram::ShaderProgram() :
-	programID(0), completed(false) {}
+ShaderProgram::ShaderProgram(FragmentOutput fragmentOutput) :
+	programID(0), completed(false) {
+	this->setDataLocations(fragmentOutput);
+}
 
 
 ShaderProgram::~ShaderProgram() {
@@ -40,11 +42,26 @@ void ShaderProgram::addShader(uint32 type, std::string file) {
 	addShader(RESOURCE_HANDLER.loadShader(type, file));
 }
 
-void ShaderProgram::addAttribute(int32 location, std::string attribute) {
-	if (attribute.length() == 0 || attributes.count(attribute) != 0)
+void ShaderProgram::addAttribute(int32 index, std::string name) {
+	if (name.length() == 0 || attributes.count(name) != 0)
 		return;
 
-	attributes.insert(std::make_pair(attribute, location));
+	attributes.insert(std::make_pair(name, index));
+}
+
+void ShaderProgram::addDataLocation(int32 index, std::string name) {
+	if (name.length() == 0 || dataLocations.count(name) != 0)
+		return;
+
+	dataLocations.insert(std::make_pair(name, index));
+}
+
+void ShaderProgram::setDataLocations(FragmentOutput locations) {
+	this->dataLocations.clear();
+
+	for (auto it = locations.dataLocations.begin(); it != locations.dataLocations.end(); it++) {
+		this->addDataLocation(it->index, it->name);
+	}
 }
 
 void ShaderProgram::completeProgram() {
@@ -63,6 +80,12 @@ void ShaderProgram::completeProgram() {
 		logInfo("Adding attribute \"%s\" at location %d", it->first.c_str(), it->second);
 		glBindAttribLocation(programID, it->second, it->first.c_str());
 	}
+
+	for (auto it = dataLocations.begin(); it != dataLocations.end(); it++) {
+		logInfo("Adding fragment data location \"%s\" at location %d", it->first.c_str(), it->second);
+		glBindFragDataLocation(programID, it->second, it->first.c_str());
+	}
+
 
 	int32 status = GL_FALSE;
 	int logLength;

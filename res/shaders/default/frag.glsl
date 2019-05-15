@@ -15,7 +15,9 @@ uniform float farPlane;
 uniform float scaleFactor;
 uniform bool lightingEnabled;
 
-out vec4 outColour;
+out vec3 outDiffuse;
+out vec3 outNormal;
+out vec2 outSpecularEmission;
 
 void main(void) {
     vec3 colour = vec3(1.0);
@@ -25,10 +27,10 @@ void main(void) {
          colour *= nDotL;
     }
 
-    outColour = vec4(colour, 1.0);
+    outDiffuse = colour.rgb;
     //float depth = gl_FragCoord.z;
     //float linearDepth = (2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
-    //outColour = vec4(linearDepth, linearDepth, linearDepth, 1.0);
+    //outDiffuse = vec4(linearDepth, linearDepth, linearDepth, 1.0);
 
     gl_FragDepth = log2(fs_flogz) * depthCoefficient * 0.5;
 }

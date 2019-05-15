@@ -3,17 +3,34 @@
 #include "core/engine/renderer/ShaderProgram.h"
 #include "core/engine/renderer/GLMesh.h"
 #include "core/engine/renderer/FrameBuffer.h"
+#include "core/util/Time.h"
 
 #include <GL/glew.h>
 
 
 ScreenRenderer::ScreenRenderer() {
+	this->msaaSamples = 4;
+	this->fixedSampleLocations = true;
+	this->histogramBinCount = 256;
+}
 
+
+ScreenRenderer::~ScreenRenderer() {
+
+}
+
+void ScreenRenderer::init() {
 	this->screenShader = new ShaderProgram();
 	this->screenShader->addShader(GL_VERTEX_SHADER, "screen/vert.glsl");
 	this->screenShader->addShader(GL_FRAGMENT_SHADER, "screen/frag.glsl");
 	this->screenShader->addAttribute(0, "vs_vertexPosition");
 	this->screenShader->completeProgram();
+
+	this->histogramShader = new ShaderProgram();
+	this->histogramShader->addShader(GL_VERTEX_SHADER, "histogram/vert.glsl");
+	this->histogramShader->addShader(GL_FRAGMENT_SHADER, "histogram/frag.glsl");
+	this->histogramShader->addAttribute(0, "vs_vertexPosition");
+	this->histogramShader->completeProgram();
 
 	VertexLayout screenAttributes = VertexLayout(8, { VertexAttribute(0, 2, 0) }, [](Vertex v) -> std::vector<float> { return std::vector<float> {float(v.position.x), float(v.position.y)}; });
 
@@ -26,60 +43,200 @@ ScreenRenderer::ScreenRenderer() {
 
 	this->screenQuad = new GLMesh(screenMesh, screenAttributes);
 
-	this->msaaSamples = 4;
-	this->fixedSampleLocations = true;
+	int32 width, height;
+	Application::getWindowSize(&width, &height);
+	this->setResolution(uvec2(width, height));
+	this->setHistogram(256);
 }
 
-
-ScreenRenderer::~ScreenRenderer() {
-}
-
-void ScreenRenderer::init(int windowWidth, int windowHeight) {
-	delete this->screenBuffer;
-
-	glDeleteTextures(1, &this->albedoTexture);
-	glGenTextures(1, &this->albedoTexture);
-
-	glDeleteTextures(1, &this->normalTexture);
-	glGenTextures(1, &this->normalTexture);
-
-	glDeleteTextures(1, &this->specularEmissionTexture);
-	glGenTextures(1, &this->specularEmissionTexture);
-
-	glDeleteTextures(1, &this->depthTexture);
-	glGenTextures(1, &this->depthTexture);
-
-	uint32* drawBuffers = new uint32[3]{ GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-
-	// Screen
-	this->screenBuffer = new FrameBuffer();
-	this->screenBuffer->bind(windowWidth, windowHeight);
-	this->screenBuffer->setDrawBuffers(3, drawBuffers);
-
-	this->updateTexturesMultisample(windowWidth, windowHeight);
-
-	this->screenBuffer->createColourTextureAttachment(0, this->albedoTexture, GL_TEXTURE_2D_MULTISAMPLE);
-	this->screenBuffer->createColourTextureAttachment(1, this->normalTexture, GL_TEXTURE_2D_MULTISAMPLE);
-	this->screenBuffer->createColourTextureAttachment(2, this->specularEmissionTexture, GL_TEXTURE_2D_MULTISAMPLE);
-	this->screenBuffer->createDepthTextureAttachment(this->depthTexture, GL_TEXTURE_2D_MULTISAMPLE);
+void ScreenRenderer::render(double partialTicks, double dt) {
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	FrameBuffer::unbind();
 
-	delete[] drawBuffers;
+
+
+	// HISTOGRAM
+
+	this->histogramBuffer->bind(this->histogramBinCount, 1);
+
+	this->histogramShader->useProgram(true);
+	this->screenShader->setUniform("textureSampler", 0);
+	this->screenShader->setUniform("textureSize", fvec2(this->histogramResolution));
+	this->screenShader->setUniform("binCount", int32(this->histogramBinCount));
+
+	glEnable(GL_TEXTURE_2D_MULTISAMPLE);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->albedoTexture);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE);
+	this->histogramPoints->draw();
+
+	glDisable(GL_BLEND);
+
+
+
+	// POSTPROCESSING / FINAL RENDER
+	
+	FrameBuffer::unbind();
+
+	this->screenShader->useProgram(true);
+	this->screenShader->setUniform("msaaSamples", int32(this->msaaSamples));
+	this->screenShader->setUniform("histogramBinCount", int32(this->histogramBinCount));
+	this->screenShader->setUniform("resolution", fvec2(this->resolution));
+	this->screenShader->setUniform("albedoTexture", 0);
+	this->screenShader->setUniform("normalTexture", 1);
+	this->screenShader->setUniform("specularEmission", 2);
+	this->screenShader->setUniform("depthTexture", 3);
+
+	this->screenShader->setUniform("histogramTexture", 4);
+
+	glEnable(GL_TEXTURE_2D_MULTISAMPLE);
+	glEnable(GL_TEXTURE_2D);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->albedoTexture);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->normalTexture);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->specularEmissionTexture);
+
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->depthTexture);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, this->histogramTexture);
+
+	this->screenQuad->draw();
 }
 
-void ScreenRenderer::updateTexturesMultisample(int32 width, int32 height) {
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->albedoTexture);
-    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RGBA32F, width, height, this->fixedSampleLocations);
+void ScreenRenderer::bindScreenBuffer() const {
+	this->screenBuffer->bind(this->resolution.x, this->resolution.y);
+}
 
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->normalTexture);
-    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RGB32F, width, height, this->fixedSampleLocations);
+bool ScreenRenderer::setHistogram(uint32 binCount) {
 
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->specularEmissionTexture);
-    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RG32F, width, height, this->fixedSampleLocations);
+	if (binCount < 5) {
+		logError("Cannot initialize histogram with too few bins");
+		return false;
+	}
 
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->depthTexture);
-    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_DEPTH_COMPONENT32F, width, height, this->fixedSampleLocations);
+	this->histogramBinCount = binCount;
 
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+	delete this->histogramBuffer;
+
+	glEnable(GL_TEXTURE_2D);
+
+	glDeleteTextures(1, &this->histogramTexture);
+	glGenTextures(1, &this->histogramTexture);
+
+	uint32* drawBuffers = new uint32[1]{ GL_COLOR_ATTACHMENT0 };
+
+	this->histogramBuffer = new FrameBuffer();
+	this->histogramBuffer->bind(this->histogramBinCount, 1);
+	this->histogramBuffer->setDrawBuffers(1, drawBuffers);
+	delete[] drawBuffers;
+
+	glBindTexture(GL_TEXTURE_2D, this->histogramTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, this->histogramBinCount, 1, 0, GL_RGB, GL_FLOAT, NULL);
+
+	this->histogramBuffer->createColourTextureAttachment(0, this->histogramTexture, GL_TEXTURE_2D);
+	this->histogramBuffer->checkStatus(true);
+	return true;
+}
+
+bool ScreenRenderer::setResolution(uvec2 resolution) {
+	if (resolution != this->resolution) {
+		if (resolution.x < 100 || resolution.y < 100) { // 100 x 100 is an arbitary minimum resolution. why would anyone even want anything less?
+			logError("Cannot initialize screen renderer with resolution of [%d x %d]", resolution.x, resolution.y);
+			return false;
+		}
+
+		this->resolution = resolution;
+
+		delete this->screenBuffer;
+
+		glEnable(GL_TEXTURE_2D_MULTISAMPLE);
+
+		glDeleteTextures(1, &this->albedoTexture);
+		glGenTextures(1, &this->albedoTexture);
+
+		glDeleteTextures(1, &this->normalTexture);
+		glGenTextures(1, &this->normalTexture);
+
+		glDeleteTextures(1, &this->specularEmissionTexture);
+		glGenTextures(1, &this->specularEmissionTexture);
+
+		glDeleteTextures(1, &this->depthTexture);
+		glGenTextures(1, &this->depthTexture);
+
+		uint32* drawBuffers = new uint32[3]{ GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+
+		// Screen
+		this->screenBuffer = new FrameBuffer();
+		this->screenBuffer->bind(this->resolution.x, this->resolution.y);
+		this->screenBuffer->setDrawBuffers(3, drawBuffers);
+		delete[] drawBuffers;
+
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->albedoTexture);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RGBA32F, this->resolution.x, this->resolution.y, this->fixedSampleLocations);
+
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->normalTexture);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RGB32F, this->resolution.x, this->resolution.y, this->fixedSampleLocations);
+
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->specularEmissionTexture);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RG32F, this->resolution.x, this->resolution.y, this->fixedSampleLocations);
+
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->depthTexture);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_DEPTH_COMPONENT32F, this->resolution.x, this->resolution.y, this->fixedSampleLocations);
+
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+
+		this->screenBuffer->createColourTextureAttachment(0, this->albedoTexture, GL_TEXTURE_2D_MULTISAMPLE);
+		this->screenBuffer->createColourTextureAttachment(1, this->normalTexture, GL_TEXTURE_2D_MULTISAMPLE);
+		this->screenBuffer->createColourTextureAttachment(2, this->specularEmissionTexture, GL_TEXTURE_2D_MULTISAMPLE);
+		this->screenBuffer->createDepthTextureAttachment(this->depthTexture, GL_TEXTURE_2D_MULTISAMPLE);
+		this->screenBuffer->checkStatus(true);
+
+		VertexLayout histogramPointAttributes = VertexLayout(8, { VertexAttribute(0, 2, 0) }, [](Vertex v) -> std::vector<float> { return std::vector<float> {float(v.position.x), float(v.position.y)}; });
+
+		this->histogramResolution = uvec2(this->resolution / 1u);
+		int32 vertexCount = this->histogramResolution.x * this->histogramResolution.y;
+
+		uint64 a = Time::now();
+		std::vector<Vertex> vertices;
+		vertices.reserve(vertexCount);
+		std::vector<uint32> indices;
+		indices.reserve(vertexCount);
+		
+		fvec3 vertex = fvec3(0.0, 0.0, 0.0);
+		for (int i = 0; i < vertexCount; i++) {
+			vertex.x = (float)(i / this->histogramResolution.x) / (float)this->histogramResolution.x;
+			vertex.y = (float)(i % this->histogramResolution.y) / (float)this->histogramResolution.y;
+
+			vertices.push_back(Vertex(vertex));
+			indices.push_back(i);
+		}
+
+		uint64 b = Time::now();
+		logInfo("Took %f ms to initialize histogram with %d vertices", (b - a) / 1000000.0, vertexCount);
+
+		MeshData* histogramPointMesh = new MeshData(vertices, indices, histogramPointAttributes);
+		this->histogramPoints = new GLMesh(histogramPointMesh, histogramPointAttributes);
+		this->histogramPoints->setPrimitive(GL_POINTS);
+
+		FrameBuffer::unbind();
+
+		return true;
+	}
+}
+
+uvec2 ScreenRenderer::getResolution() const {
+	return this->resolution;
 }

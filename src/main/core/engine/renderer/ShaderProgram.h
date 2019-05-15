@@ -4,8 +4,32 @@
 
 class ShaderProgram;
 class Shader;
+struct FragmentDataLocation;
+struct FragmentOutput;
 
 //#define DOUBLE_PRECISION_UNIFORMS_ENABLED
+
+
+#define DEFAULT_FRAGMENT_OUTPUTS FragmentOutput({	\
+	FragmentDataLocation("outDiffuse", 0),			\
+	FragmentDataLocation("outNormal", 1),			\
+	FragmentDataLocation("outSpecularEmission", 2),	\
+})
+
+struct FragmentDataLocation {
+	std::string name;
+	uint32 index;
+
+	FragmentDataLocation(std::string name, uint32 index):
+		name(name), index(index) {}
+};
+
+struct FragmentOutput {
+	std::vector<FragmentDataLocation> dataLocations;
+
+	FragmentOutput(std::vector<FragmentDataLocation> dataLocations) :
+		dataLocations(dataLocations) {}
+};
 
 class ShaderProgram
 {
@@ -13,19 +37,24 @@ private:
 	std::map<uint32, Shader*> shaders;
 	std::unordered_map<std::string, int32> uniforms;
 	std::unordered_map<std::string, int32> attributes;
+	std::unordered_map<std::string, int32> dataLocations;
 	//    std::vector<Light*> lights;
 	uint32 programID;
 	bool completed;
 
 public:
-	ShaderProgram();
+	ShaderProgram(FragmentOutput fragmentOutput = DEFAULT_FRAGMENT_OUTPUTS);
 	~ShaderProgram();
 
 	void addShader(Shader* shader);
 
 	void addShader(uint32 type, std::string file);
 
-	void addAttribute(int32 location, std::string attribute);
+	void addAttribute(int32 index, std::string name);
+
+	void addDataLocation(int32 index, std::string name);
+
+	void setDataLocations(FragmentOutput locations);
 
 	void completeProgram();
 
