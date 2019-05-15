@@ -36,9 +36,6 @@ void init() {
 
 	GLMesh* mesh = new GLMesh(MeshHelper::createCuboid());
 
-	Camera* camera = new Camera();
-	camera->setPosition(fvec3(0, 1, -2));
-
 	//GameObject* testCube = new GameObject(SCENE_GRAPH.getRoot(), "testCube", *((new Transformation())->rotate(vec3(1, 0, 0), QUARTER_PI)->rotate(vec3(0, 0, 1), //QUARTER_PI)));
 	//testCube->addComponent("renderer", new RenderComponent(MeshHelper::createCuboid(), program));
 	//testCube->addComponent("updater", new FunctionComponent(
@@ -50,7 +47,7 @@ void init() {
 
 	float r = 6000;
 	planet = new Planet(fvec3(), r, 2.0F, 24);
-	SCENE_GRAPH.getCamera()->setPosition(vec3(0.0F, 0.0F, -r * 10.0F));
+	SCENE_GRAPH.getCamera()->setPosition(normalize(fvec3(0.0F, 1.0, -0.6)) * (r + 20.0F));
 
 	//GameObject* testPlane = new GameObject(SCENE_GRAPH.getRoot(), "testPlane", Transformation(vec3(0.0F, -3.0F, 0.0F)));
 	//
