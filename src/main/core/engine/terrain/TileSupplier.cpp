@@ -227,7 +227,7 @@ double TileData::getMinHeight() const {
 
 ////////////////// TileData \\\\\\\\\\\\\\\\\\ 
 
-uint32 timerQuery;
+//uint32 timerQuery;
 TileSupplier::TileSupplier(Planet* planet, uint32 seed, uint32 textureCapacity, uint32 textureSize) {
 	this->planet = planet;
 
@@ -291,7 +291,7 @@ TileSupplier::TileSupplier(Planet* planet, uint32 seed, uint32 textureCapacity, 
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
 	// Initialize compute shader.
-	glGenQueries(1, &timerQuery);
+	//glGenQueries(1, &timerQuery);
 	this->tileGeneratorProgram = new ShaderProgram();
 	this->tileGeneratorProgram->addShader(GL_COMPUTE_SHADER, "simpleTerrain/heightComp.glsl");
 	this->tileGeneratorProgram->completeProgram();

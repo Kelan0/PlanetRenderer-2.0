@@ -12,6 +12,11 @@ ScreenRenderer::ScreenRenderer() {
 	this->msaaSamples = 4;
 	this->fixedSampleLocations = true;
 	this->histogramBinCount = 256;
+	this->histogramDownsample = 4;
+	this->histogramBrightnessRange = 10.0; // 10x brighter than a pixel.
+	this->brightnessAdaptationRate = 0.1;
+	this->histogramTransferBufferCount = 1;
+	this->histogramTransferSync = new GLsync[this->histogramTransferBufferCount]();
 }
 
 
@@ -54,7 +59,8 @@ void ScreenRenderer::render(double partialTicks, double dt) {
 	glDisable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	// HISTOGRAM
+
+	// Render histogram for current frame.
 
 	this->histogramBuffer->bind(this->histogramBinCount, 1);
 	glEnable(GL_TEXTURE_2D);
@@ -65,14 +71,14 @@ void ScreenRenderer::render(double partialTicks, double dt) {
 	this->histogramShader->useProgram(true);
 	this->histogramShader->setUniform("textureSampler", 0);
 	this->histogramShader->setUniform("textureSize", fvec2(this->resolution));
-	this->histogramShader->setUniform("histogramBins", int32(this->histogramBinCount));
+	this->histogramShader->setUniform("histogramBinCount", int32(this->histogramBinCount));
+	this->histogramShader->setUniform("histogramBrightnessRange", int32(this->histogramBrightnessRange));
 	
 	glEnable(GL_TEXTURE_2D_MULTISAMPLE);
 	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->albedoTexture);
 	
-	// TODO: MEASURE THIS PERFORMANCE AND MAKE NECESSARY OPTIMISATIONS.
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE);
 	for (int i = 0; i < 4; i++) {
@@ -82,15 +88,79 @@ void ScreenRenderer::render(double partialTicks, double dt) {
 	glDisable(GL_BLEND);
 
 
+	// Histogram pixel readback request
 
-	// POSTPROCESSING / FINAL RENDER
+	for (int i = 0; i < this->histogramTransferBufferCount; i++) {
+		uint32 readSize = this->histogramBinCount * sizeof(fvec4);
+		uint32 readOffset = i * readSize;
+
+		if (this->histogramTransferSync[i] == NULL) {
+			glBindBuffer(GL_PIXEL_PACK_BUFFER, this->histogramTransferBuffer);
+			glBindTexture(GL_TEXTURE_2D, this->histogramTexture);
+			glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, (void*) readOffset);
+
+			this->histogramTransferSync[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+		} else {
+			int32 result;
+			glGetSynciv(this->histogramTransferSync[i], GL_SYNC_STATUS, sizeof(result), NULL, &result);
+
+			if (result == GL_SIGNALED) {
+				glBindBuffer(GL_PIXEL_PACK_BUFFER, this->histogramTransferBuffer);
+				vec4* data = static_cast<vec4*>(glMapBufferRange(GL_PIXEL_PACK_BUFFER, readOffset, readSize, GL_MAP_READ_BIT));
+				std::memcpy(this->histogramData, data, readSize);
+
+				glDeleteSync(this->histogramTransferSync[i]);
+				this->histogramTransferSync[i] = NULL;
+
+				glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+			}
+		}
+	}
+
+	// Analyse histogram
+
+	for (int i = 0; i < this->histogramBinCount; i++) {
+		if (i == 0) {
+			this->histogramCumulativeDistribution[i] = this->histogramData[i];
+		} else {
+			this->histogramCumulativeDistribution[i] = this->histogramCumulativeDistribution[i - 1] + this->histogramData[i];
+		}
+	}
+
+	vec4 minPixelContribution = this->histogramCumulativeDistribution[int32(this->histogramBinCount * 0.60)];
+	vec4 maxPixelContribution = this->histogramCumulativeDistribution[int32(this->histogramBinCount * 0.95)];
+
+	float luminance = 0.0;
+	float count = 0.0;
+
+	for (int i = 0; i < this->histogramBinCount; i++) {
+		vec4 bin = this->histogramData[i];
+
+		if (bin.a < minPixelContribution.a || bin.a > maxPixelContribution.a) {
+			continue;
+		} else {
+			luminance += bin.a * ((float) i / (float) (this->histogramBinCount - 1) * this->histogramBrightnessRange);
+			count += bin.a;
+		}
+	}
+
+	luminance = glm::clamp(luminance / glm::max(1.0F, count), 0.15F, 4.0F);
+
+	//this->sceneBrightness = this->screenB(luminance - this->sceneBrightness) * this->brightnessAdaptationRate;
+
+	logInfo("Scene luminance: %f over %f pixels, max contrib = %f, min contrib = %f", luminance, count, maxPixelContribution.a, minPixelContribution.a);
+
+
+	// Render final scene.
 	
 	FrameBuffer::unbind();
 
 	this->screenShader->useProgram(true);
 	this->screenShader->setUniform("msaaSamples", int32(this->msaaSamples));
 	this->screenShader->setUniform("histogramBinCount", int32(this->histogramBinCount));
+	this->screenShader->setUniform("histogramDownsample", int32(this->histogramDownsample));
 	this->screenShader->setUniform("resolution", fvec2(this->resolution));
+	this->screenShader->setUniform("screenLuminance", (float)luminance);
 	this->screenShader->setUniform("albedoTexture", 0);
 	this->screenShader->setUniform("normalTexture", 1);
 	this->screenShader->setUniform("specularEmission", 2);
@@ -157,6 +227,19 @@ bool ScreenRenderer::setHistogram(uint32 binCount) {
 	this->histogramBuffer->createColourTextureAttachment(0, this->histogramTexture, GL_TEXTURE_2D);
 	logInfo("Validating histogram framebuffer");
 	this->histogramBuffer->checkStatus(true);
+
+
+	glGenBuffers(1, &this->histogramTransferBuffer);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, this->histogramTransferBuffer);
+	glBufferData(GL_PIXEL_PACK_BUFFER, this->histogramTransferBufferCount * this->histogramBinCount * sizeof(fvec4), NULL, GL_STREAM_COPY);
+
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
+	delete[] this->histogramData;
+	delete[] this->histogramCumulativeDistribution;
+	this->histogramData = new fvec4[this->histogramBinCount]();
+	this->histogramCumulativeDistribution = new fvec4[this->histogramBinCount]();
+
 	return true;
 }
 
@@ -226,7 +309,7 @@ bool ScreenRenderer::setResolution(uvec2 resolution) {
 
 		VertexLayout histogramPointAttributes = VertexLayout(8, { VertexAttribute(0, 2, 0) }, [](Vertex v) -> std::vector<float> { return std::vector<float> {float(v.position.x), float(v.position.y)}; });
 
-		this->histogramResolution = uvec2(this->resolution / 4u);
+		this->histogramResolution = uvec2(this->resolution / this->histogramDownsample);
 		int32 vertexCount = this->histogramResolution.x * this->histogramResolution.y;
 
 		uint64 a = Time::now();
