@@ -1,9 +1,13 @@
 #include "AtmosphereRenderer.h"
-#include "core/engine/renderer/ShaderProgram.h"
+#include "core/application/Application.h"
+#include "core/engine/renderer/FrameBuffer.h"
 #include "core/engine/renderer/GLMesh.h"
+#include "core/engine/renderer/ShaderProgram.h"
+#include "core/engine/renderer/ShaderProgram.h"
+#include "core/engine/renderer/ScreenRenderer.h"
 #include "core/engine/scene/SceneGraph.h"
 #include "core/engine/terrain/Planet.h"
-#include "core/application/Application.h"
+#include "core/event/EventHandler.h"
 #include <GL/glew.h>
 
 
@@ -35,6 +39,12 @@ AtmosphereRenderer::AtmosphereRenderer(Planet* planet, float atmosphereHeight, f
 	this->sunDirection = fvec3(0.26726F, 0.8018F, 0.5345F);
 
 	this->sunIntensity = 22.0F;
+
+	// this->setResolution(uvec2(1600, 900)); // bad hard coded
+	EVENT_HANDLER.subscribe(EventLambda(WindowResizeEvent) {
+		this->setResolution(uvec2(event.newWidth, event.newHeight));
+	});
+
 }
 
 AtmosphereRenderer::~AtmosphereRenderer() {
@@ -43,26 +53,98 @@ AtmosphereRenderer::~AtmosphereRenderer() {
 }
 
 void AtmosphereRenderer::render(double partialTicks, double dt) {
-	this->atmosphereProgram->useProgram(true);
-	SCENE_GRAPH.applyUniforms(this->atmosphereProgram);
-	this->planet->applyUniforms(this->atmosphereProgram);
 
-	this->atmosphereProgram->setUniform("localCameraPosition", (fvec3)(this->planet->getLocalCameraPosition() * 1000.0));
-	this->atmosphereProgram->setUniform("innerRadius", (float) (this->planet->getRadius()) * 1000.0F);
-	this->atmosphereProgram->setUniform("outerRadius", (float) (this->planet->getRadius() + this->atmosphereHeight) * 1000.0F);
-	this->atmosphereProgram->setUniform("rayleighHeight", (float) (this->rayleighHeight) * 1000.0F);
-	this->atmosphereProgram->setUniform("mieHeight", (float) (this->mieHeight) * 1000.0F);
-	this->atmosphereProgram->setUniform("sunIntensity", (float) (this->sunIntensity));
-	this->atmosphereProgram->setUniform("sunDirection", (fvec3) (this->sunDirection));
-	this->atmosphereProgram->setUniform("rayleighWavelength", (fvec3) (this->rayleighWavelength));
-	this->atmosphereProgram->setUniform("mieWavelength", (fvec3) (this->mieWavelength));
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_TEXTURE_2D);
+	this->atmosphereProgram->useProgram(true);
+
+	this->screenBuffer->bind(this->screenResolution.x, this->screenResolution.y);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	SCENE_GRAPH.applyUniforms(this->atmosphereProgram);
+	SCREEN_RENDERER.applyUniforms(this->atmosphereProgram);
+	this->planet->applyUniforms(this->atmosphereProgram);
+	this->atmosphereProgram->setUniform("localCameraPosition", (fvec3)(this->planet->getLocalCameraPosition()) * 1000.0F);
+	this->atmosphereProgram->setUniform("innerRadius", (float)(this->planet->getRadius()) * 1000.0F);
+	this->atmosphereProgram->setUniform("outerRadius", (float)(this->planet->getRadius() + this->atmosphereHeight) * 1000.0F);
+	this->atmosphereProgram->setUniform("rayleighHeight", (float)(this->rayleighHeight) * 1000.0F);
+	this->atmosphereProgram->setUniform("mieHeight", (float)(this->mieHeight) * 1000.0F);
+	this->atmosphereProgram->setUniform("sunIntensity", (float)(this->sunIntensity));
+	this->atmosphereProgram->setUniform("sunDirection", (fvec3)(this->sunDirection));
+	this->atmosphereProgram->setUniform("rayleighWavelength", (fvec3)(this->rayleighWavelength));
+	this->atmosphereProgram->setUniform("mieWavelength", (fvec3)(this->mieWavelength));
+	this->atmosphereProgram->setUniform("albedoTexture", 20);
+	this->atmosphereProgram->setUniform("normalTexture", 21);
+	this->atmosphereProgram->setUniform("positionTexture", 22);
+	this->atmosphereProgram->setUniform("specularEmissionTexture", 23);
+	this->atmosphereProgram->setUniform("depthTexture", 24);
+	this->atmosphereProgram->setUniform("renderScreenQuad", false);
+
+	glActiveTexture(GL_TEXTURE20);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getAlbedoTexture());
+
+	glActiveTexture(GL_TEXTURE21);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getNormalTexture());
+
+	glActiveTexture(GL_TEXTURE22);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getPositionTexture());
+
+	glActiveTexture(GL_TEXTURE23);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getSpecularEmissionTexture());
+
+	glActiveTexture(GL_TEXTURE24);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getDepthTexture());
 
 	this->screenQuad->draw();
-	this->atmosphereProgram->useProgram(false);
+	FrameBuffer::unbind();
+
+	SCREEN_RENDERER.bindScreenBuffer();
+
+	this->atmosphereProgram->setUniform("atmosphereScreenTexture", 0);
+	this->atmosphereProgram->setUniform("renderScreenQuad", true);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->screenTexture);
+	this->screenQuad->draw();
+	glEnable(GL_DEPTH_TEST);
 }
 
 void AtmosphereRenderer::update(double dt) {
 
+}
+
+void AtmosphereRenderer::setResolution(uvec2 resolution) {
+	this->screenResolution = resolution;
+
+	delete this->screenBuffer;
+
+	glEnable(GL_TEXTURE_2D);
+
+	glDeleteTextures(1, &this->screenTexture);
+	glGenTextures(1, &this->screenTexture);
+
+	uint32* drawBuffers = new uint32[1]{ GL_COLOR_ATTACHMENT0 };
+
+	this->screenBuffer = new FrameBuffer();
+	this->screenBuffer->bind(this->screenResolution.x, this->screenResolution.y);
+	this->screenBuffer->setDrawBuffers(1, drawBuffers);
+	delete[] drawBuffers;
+
+	glBindTexture(GL_TEXTURE_2D, this->screenTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, this->screenResolution.x, this->screenResolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, this->screenResolution.x, this->screenResolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	this->screenBuffer->createColourTextureAttachment(0, this->screenTexture, GL_TEXTURE_2D);
+	//this->screenBuffer->createDepthBufferAttachment(this->screenResolution.x, this->screenResolution.y, this->screenBuffer->genRenderBuffers());
+	logInfo("Validating atmosphere framebuffer");
+
+	this->screenBuffer->checkStatus(true);
 }
 
 float AtmosphereRenderer::getAtmosphereHeight() const {

@@ -13,7 +13,8 @@ struct FragmentOutput;
 #define DEFAULT_FRAGMENT_OUTPUTS FragmentOutput({	\
 	FragmentDataLocation("outDiffuse", 0),			\
 	FragmentDataLocation("outNormal", 1),			\
-	FragmentDataLocation("outSpecularEmission", 2),	\
+	FragmentDataLocation("outPosition", 2),			\
+	FragmentDataLocation("outSpecularEmission", 3),	\
 })
 
 struct FragmentDataLocation {

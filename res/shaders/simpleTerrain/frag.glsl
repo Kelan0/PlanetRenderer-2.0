@@ -15,6 +15,7 @@ in vec4 fs_interp;
 
 in float fs_flogz;
 
+uniform mat4 invViewProjectionMatrix;
 uniform mat4 screenToLocal;
 uniform mat4 localToScreen;
 
@@ -32,6 +33,7 @@ uniform bool showDebug;
 
 out vec3 outDiffuse;
 out vec3 outNormal;
+out vec3 outPosition;
 out vec2 outSpecularEmission;
 
 vec4 getInterp(vec2 pos) {
@@ -82,6 +84,9 @@ void main(void) {
     } else {
         outDiffuse = colour.rgb;
     }
+    
+    
+    outPosition = fs_screenPosition.xyz;
 
-    gl_FragDepth = log2(fs_flogz) * depthCoefficient * 0.5;
+    //gl_FragDepth = log2(fs_flogz) * depthCoefficient * 0.5;
 }

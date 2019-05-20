@@ -147,7 +147,7 @@ void render(double partialTicks, double dt) {
 	} else {
 		if (INPUT_HANDLER.keyPressed(KEY_R)) resettingSpeed = true;
 		if (INPUT_HANDLER.keyPressed(KEY_EQUALS)) {
-			viewerMoveSpeed = glm::min(viewerMoveSpeed * 1.5, 400.0);
+			viewerMoveSpeed = glm::min(viewerMoveSpeed * 1.5, 40000.0);
 			resettingSpeed = false;
 		}
 		if (INPUT_HANDLER.keyPressed(KEY_MINUS)) {
@@ -216,6 +216,7 @@ void render(double partialTicks, double dt) {
 
 	camera->setOrientation(orientation);
 
+	camera->render(partialTicks, dt);
 	planet->render(partialTicks, dt);
 	planet->update(dt);
 

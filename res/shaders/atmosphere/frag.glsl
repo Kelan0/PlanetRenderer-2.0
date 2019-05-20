@@ -10,6 +10,11 @@ in vec2 fs_vertexPosition;
 uniform mat4 invProjectionMatrix;
 uniform mat4 invViewMatrix;
 
+uniform mat4 invViewProjectionMatrix;
+uniform float nearPlane;
+uniform float farPlane;
+uniform float scaleFactor;
+uniform vec2 screenResolution;
 uniform vec3 localCameraPosition;
 uniform float innerRadius;
 uniform float outerRadius;
@@ -19,10 +24,37 @@ uniform float sunIntensity;
 uniform vec3 sunDirection;
 uniform vec3 rayleighWavelength;
 uniform vec3 mieWavelength;
+uniform bool renderScreenQuad;
+uniform sampler2D atmosphereScreenTexture;
+uniform sampler2DMS albedoTexture;
+uniform sampler2DMS normalTexture;
+uniform sampler2DMS positionTexture;
+uniform sampler2DMS specularEmissionTexture;
+uniform sampler2DMS depthTexture;
 
 out vec3 outDiffuse;
 out vec3 outNormal;
 out vec2 outSpecularEmission;
+
+
+float linearizeDepth(float reconDepth) {
+    float f = farPlane;
+    float n = nearPlane;
+    float d = reconDepth;
+
+    return f / (f - n) + (f * n / (n - f)) / d;
+}
+
+float reconstructDepth(float logDepth) {
+    float f = farPlane;
+
+    return pow(2.0, logDepth * log2(f + 1.0)) - 1.0;
+}
+
+vec3 reconstructWorldPosition(vec2 uv, float linearDepth) {
+    vec4 p = invViewProjectionMatrix * (vec4(uv, linearDepth, 1.0) * 2.0 - 1.0);
+    return p.xyz / p.w;
+}
 
 vec3 getRayDirection() {
     vec2 screenPos = fs_vertexPosition * 2.0 - 1.0; // range [-1 to +1]
@@ -51,18 +83,28 @@ bool getSphereIntersection(vec3 rayOrigin, vec3 rayDir, float radius, inout floa
 	return viewrayFar > viewrayNear;
 }
 
-void main(void) {
+vec4 renderAtmosphere(vec3 localTerrainPosition) {
 	vec3 rayOrig = localCameraPosition;
 	vec3 rayDir = getRayDirection();
 
+	float worldDist = length(localTerrainPosition - localCameraPosition);
 	bool insideAtmosphere = dot(rayOrig, rayOrig) < outerRadius * outerRadius;
 
 	float viewrayNear = 0.0;
 	float viewrayFar = 0.0;
 
+	//if (getSphereIntersection(rayOrig, rayDir, innerRadius - (outerRadius - innerRadius), viewrayNear, viewrayFar) && viewrayFar > 0.0) {
+	//	return vec4(0.0);
+	//}
+
 	if (!getSphereIntersection(rayOrig, rayDir, outerRadius, viewrayNear, viewrayFar) || viewrayFar <= 0.0 || (!insideAtmosphere && abs(viewrayNear) > viewrayFar)) {
-		discard;
+		return vec4(0.0);
 	}
+
+	if (worldDist > 0.0) {
+		viewrayFar = worldDist;
+	}
+	
 
 	//float innerNear = 0.0;
 	//float innerFar = 0.0;
@@ -105,7 +147,7 @@ void main(void) {
 		viewraySamplePoint = rayOrig + rayDir * (viewrayCurrSample + viewraySegmentLength * 0.5);
 		viewraySampleHeight = length(viewraySamplePoint) - innerRadius;
 
-		hr = exp(-viewraySampleHeight / rayleighHeight) * viewraySegmentLength;
+ 		hr = exp(-viewraySampleHeight / rayleighHeight) * viewraySegmentLength;
 		hm = exp(-viewraySampleHeight / mieHeight) * viewraySegmentLength;
 
 		viewrayRayleighOptic += hr;
@@ -113,6 +155,7 @@ void main(void) {
 
 		lightrayNear = 0.0;
 		lightrayFar = 0.0;
+
 		getSphereIntersection(viewraySamplePoint, sunDirection, outerRadius, lightrayNear, lightrayFar);
 		// Assuming this intersection happens. It should in most cases.
 
@@ -120,13 +163,13 @@ void main(void) {
 		lightrayCurrSample = 0.0;
 		lightrayRayleighOptic = 0.0;
 		lightrayMieOptic = 0.0;
-
+		
 		for (j = 0; j < lightraySampleCount; j++) {
 			lightraySamplePoint = viewraySamplePoint + sunDirection * (lightrayCurrSample + lightraySegmentLength * 0.5);
-			lightraySampleHeight = length(lightraySamplePoint) - innerRadius;
+			lightraySampleHeight = (length(lightraySamplePoint) - innerRadius);
 
 			if (lightraySampleHeight < 0.0) {
-				break; // TODO: use terrain height values to determine if ray is under terrain surface. Decode position from depth buffer.
+				break;
 			}
 
 			// TODO: precompute these optical depth values and send them via uniforms.
@@ -145,7 +188,49 @@ void main(void) {
 
 		viewrayCurrSample += viewraySegmentLength;
 	}
-	vec3 colour = (rayleighSum * rayleighWavelength * rayleighPhase + mieSum * mieWavelength * miePhase) * 22.0;
-	outDiffuse = colour.rgb;
-    gl_FragDepth = 0.999999;
+
+	vec3 atmosphereColour = (rayleighSum * rayleighWavelength * rayleighPhase + mieSum * mieWavelength * miePhase) * 22.0;
+	float alpha = clamp(max(max(atmosphereColour.r, atmosphereColour.g), atmosphereColour.b), 0.25, 1.0);//clamp(dot(atmosphereColour, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
+
+	if (worldDist <= 0.0) {
+		float rayDotSun = dot(rayDir, sunDirection);
+		float sMin = 0.99;
+		float sMax = 0.9999;
+		if (rayDotSun > sMin) {
+			if (rayDotSun > sMax) {
+				atmosphereColour = vec3(10.0);
+			}
+			//else {
+			//	float d = pow(1.0 - fract((sMax - rayDotSun) / (sMax - sMin)), 5.0);
+			//	atmosphereColour = d * vec3(d) + (1.0 - d) * atmosphereColour;
+			//}	
+		}
+	}
+
+	return vec4(atmosphereColour, 0.0);
+}
+
+void main(void) {
+
+	ivec2 texelPosition = ivec2(fs_vertexPosition * screenResolution);
+	
+	if (!renderScreenQuad) {
+		vec3 localTerrainPosition = (texelFetch(positionTexture, texelPosition, 0).xyz / scaleFactor) * 1000.0 + localCameraPosition;
+
+		vec4 atmosphereColour = renderAtmosphere(localTerrainPosition);
+		vec3 worldColour = texelFetch(albedoTexture, texelPosition, 0).rgb;
+		
+		outDiffuse = worldColour.rgb + atmosphereColour.rgb;
+		//outDiffuse = worldColour.rgb * (1.0 - atmosphereColour.a) + atmosphereColour.rgb * atmosphereColour.a;
+		
+		
+	} else {
+		outDiffuse = texture(atmosphereScreenTexture, fs_vertexPosition).rgb;
+		//outNormal = texelFetch(normalTexture, texelPosition, 0).xyz;
+		//outSpecularEmission = texelFetch(specularEmissionTexture, texelPosition, 0).xy;
+		//gl_FragDepth = texelFetch(depthTexture, texelPosition, 0).r;
+	}
+
+
+    //gl_FragDepth = 0.9999999;
 }

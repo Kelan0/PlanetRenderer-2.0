@@ -522,7 +522,7 @@ int32 ShaderProgram::getUniform(std::string uniform) {
 	if (uniforms.count(uniform) != 1) {
 	    id = glGetUniformLocation(programID, uniform.c_str());
 	
-	    logInfo("Caching uniform loaction \"%s\" with id %d", uniform.c_str(), id);
+	    // logInfo("Caching uniform loaction \"%s\" with id %d", uniform.c_str(), id);
 	
 	    uniforms.insert(std::make_pair(uniform, id));
 	} else {

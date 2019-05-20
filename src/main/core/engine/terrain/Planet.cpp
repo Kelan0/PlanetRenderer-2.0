@@ -107,6 +107,7 @@ void Planet::render(double partialTicks, double dt) {
 	this->terrainRenderer->render(this, Y_POS, this->faces[Y_POS], partialTicks, dt);
 	this->terrainRenderer->render(this, Z_NEG, this->faces[Z_NEG], partialTicks, dt);
 	this->terrainRenderer->render(this, Z_POS, this->faces[Z_POS], partialTicks, dt);
+
 	this->atmosphereRenderer->render(partialTicks, dt);
 
 	this->tileSupplier->update();

@@ -13,6 +13,7 @@ in vec4 vs_textureCoords;
 in mat4 vs_quadCorners;
 in mat4 vs_quadNormals;
 
+uniform mat4 invViewProjectionMatrix;
 uniform mat4 screenToLocal;
 uniform mat4 localToScreen;
 
@@ -123,7 +124,7 @@ void main(void) {
     interp = uvUV.xzzx * uvUV.yyww;
 
     fs_vertexPosition = vs_vertexPosition;
-    fs_screenPosition = screenPosition.xyz;
+    fs_screenPosition = (invViewProjectionMatrix * screenPosition).xyz;
     fs_quadCorners = vs_quadCorners;
     fs_quadNormals = vs_quadNormals;
     fs_interp = interp;
@@ -131,5 +132,6 @@ void main(void) {
     fs_flogz = 1.0 + screenPosition.w;
 
     gl_Position = screenPosition;
+    //gl_Position.z = (log2(max(1e-6, fs_flogz)) * depthCoefficient - 1.0) * screenPosition.w;
     gl_Position.z = (log2(max(1e-6, fs_flogz)) * depthCoefficient - 1.0) * screenPosition.w;
 }
