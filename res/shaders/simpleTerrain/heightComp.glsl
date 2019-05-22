@@ -86,7 +86,7 @@ vec4 getInterp(vec2 pos) {
 float getNoise(vec3 coord) {
     int i = 0;
 
-    float frequency = 20.0;
+    float frequency = 2.0;
     float lacunarity = 2.0;
     float gain = 0.5;
     float amplitude = 1.0;
@@ -102,7 +102,7 @@ float getNoise(vec3 coord) {
         noiseSum += snoise(coord) * amplitude;
     }
 
-    return noiseSum;
+    return abs(noiseSum);
 }
 
 vec3 getSurfacePosition(float height, vec3 n, vec4 interp) {

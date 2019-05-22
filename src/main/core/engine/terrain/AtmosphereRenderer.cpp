@@ -58,6 +58,11 @@ void AtmosphereRenderer::render(double partialTicks, double dt) {
 	glEnable(GL_TEXTURE_2D);
 	this->atmosphereProgram->useProgram(true);
 
+	// Atmosphere render is split into two passes. First pass renders the atmosphere/terrain blended colour into a texture,
+	// and second pass renders that texture into the screen buffer. It requires two passes because the atmosphere needs to
+	// read depth and position data from the screen buffer, and cannot do that if writing directly to the screen buffer.
+
+	// FIRST PASS INTO ATMOSPHERE BUFFER
 	this->screenBuffer->bind(this->screenResolution.x, this->screenResolution.y);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -74,37 +79,45 @@ void AtmosphereRenderer::render(double partialTicks, double dt) {
 	this->atmosphereProgram->setUniform("rayleighWavelength", (fvec3)(this->rayleighWavelength));
 	this->atmosphereProgram->setUniform("mieWavelength", (fvec3)(this->mieWavelength));
 	this->atmosphereProgram->setUniform("albedoTexture", 20);
-	this->atmosphereProgram->setUniform("normalTexture", 21);
-	this->atmosphereProgram->setUniform("positionTexture", 22);
-	this->atmosphereProgram->setUniform("specularEmissionTexture", 23);
-	this->atmosphereProgram->setUniform("depthTexture", 24);
+	this->atmosphereProgram->setUniform("glowTexture", 21);
+	this->atmosphereProgram->setUniform("normalTexture", 22);
+	this->atmosphereProgram->setUniform("positionTexture", 23);
+	this->atmosphereProgram->setUniform("specularEmissionTexture", 24);
+	this->atmosphereProgram->setUniform("depthTexture", 25);
 	this->atmosphereProgram->setUniform("renderScreenQuad", false);
 
 	glActiveTexture(GL_TEXTURE20);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getAlbedoTexture());
 
 	glActiveTexture(GL_TEXTURE21);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getNormalTexture());
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getGlowTexture());
 
 	glActiveTexture(GL_TEXTURE22);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getPositionTexture());
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getNormalTexture());
 
 	glActiveTexture(GL_TEXTURE23);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getSpecularEmissionTexture());
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getPositionTexture());
 
 	glActiveTexture(GL_TEXTURE24);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getSpecularEmissionTexture());
+
+	glActiveTexture(GL_TEXTURE25);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, SCREEN_RENDERER.getDepthTexture());
 
 	this->screenQuad->draw();
-	FrameBuffer::unbind();
 
+	// SECOND PASS INTO SCREEN BUFFER
 	SCREEN_RENDERER.bindScreenBuffer();
 
-	this->atmosphereProgram->setUniform("atmosphereScreenTexture", 0);
+	this->atmosphereProgram->setUniform("atmosphereColourTexture", 0);
+	this->atmosphereProgram->setUniform("atmosphereBloomTexture", 1);
 	this->atmosphereProgram->setUniform("renderScreenQuad", true);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, this->screenTexture);
+	glBindTexture(GL_TEXTURE_2D, this->atmosphereColourTexture);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, this->atmosphereBloomTexture);
 	this->screenQuad->draw();
 	glEnable(GL_DEPTH_TEST);
 }
@@ -120,27 +133,37 @@ void AtmosphereRenderer::setResolution(uvec2 resolution) {
 
 	glEnable(GL_TEXTURE_2D);
 
-	glDeleteTextures(1, &this->screenTexture);
-	glGenTextures(1, &this->screenTexture);
+	glDeleteTextures(1, &this->atmosphereColourTexture);
+	glGenTextures(1, &this->atmosphereColourTexture);
 
-	uint32* drawBuffers = new uint32[1]{ GL_COLOR_ATTACHMENT0 };
+	glDeleteTextures(1, &this->atmosphereBloomTexture);
+	glGenTextures(1, &this->atmosphereBloomTexture);
+
+	uint32* drawBuffers = new uint32[2]{ GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 
 	this->screenBuffer = new FrameBuffer();
 	this->screenBuffer->bind(this->screenResolution.x, this->screenResolution.y);
-	this->screenBuffer->setDrawBuffers(1, drawBuffers);
+	this->screenBuffer->setDrawBuffers(2, drawBuffers);
 	delete[] drawBuffers;
 
-	glBindTexture(GL_TEXTURE_2D, this->screenTexture);
+	glBindTexture(GL_TEXTURE_2D, this->atmosphereColourTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, this->screenResolution.x, this->screenResolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, this->screenResolution.x, this->screenResolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
+
+	glBindTexture(GL_TEXTURE_2D, this->atmosphereBloomTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, this->screenResolution.x, this->screenResolution.y, 0, GL_RGBA, GL_FLOAT, NULL);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	this->screenBuffer->createColourTextureAttachment(0, this->screenTexture, GL_TEXTURE_2D);
+	this->screenBuffer->createColourTextureAttachment(0, this->atmosphereColourTexture, GL_TEXTURE_2D);
+	this->screenBuffer->createColourTextureAttachment(1, this->atmosphereBloomTexture, GL_TEXTURE_2D);
 	//this->screenBuffer->createDepthBufferAttachment(this->screenResolution.x, this->screenResolution.y, this->screenBuffer->genRenderBuffers());
 	logInfo("Validating atmosphere framebuffer");
 

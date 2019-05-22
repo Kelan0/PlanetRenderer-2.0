@@ -74,7 +74,7 @@ Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSpli
 	this->tileSupplierDebugState = 0;
 
 	this->elevationUnderCamera = 0.0;
-	this->elevationScale = 8.0;
+	this->elevationScale = 130.0;
 	this->horizonRadius = this->radius - this->elevationScale;
 	this->invHorizonRadius = 1.0 / this->horizonRadius;
 

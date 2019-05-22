@@ -26,7 +26,8 @@ private:
 	ivec2 screenResolution;
 
 	FrameBuffer* screenBuffer;
-	uint32 screenTexture;
+	uint32 atmosphereColourTexture;
+	uint32 atmosphereBloomTexture;
 public:
 	AtmosphereRenderer(Planet* planet, float atmosphereHeight = 150.0, float rayleighHeight = 8.0, float mieHeight = 1.2, fvec3 rayleighWavelength = fvec3(3.8e-6f, 13.5e-6f, 33.1e-6f), fvec3 mieWavelength = fvec3(21e-6f));
 

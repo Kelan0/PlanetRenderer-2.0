@@ -1,7 +1,5 @@
 #version 450 core
 
-const vec3 directionToLight = vec3(0.26726, 0.8018, 0.5345); // [1, 3, 2]
-
 in vec3 fs_debug;
 in flat int fs_textureIndex;
 in flat ivec4 fs_neighbourDivisions;
@@ -32,6 +30,7 @@ uniform bool overlayDebug;
 uniform bool showDebug;
 
 out vec3 outDiffuse;
+out vec3 outGlow;
 out vec3 outNormal;
 out vec3 outPosition;
 out vec2 outSpecularEmission;
@@ -71,8 +70,7 @@ void main(void) {
 
     vec3 worldNormal = normalize(texture(heightSampler, vec3(fs_texturePosition, fs_textureIndex)).xyz);
 
-    float nDotL = max(0.0, dot(directionToLight, worldNormal));
-    vec3 colour = nDotL * vec3(1.0);
+    vec3 colour = vec3(1.0);
 
     //vec3 colour = fs_debug;
 
@@ -87,6 +85,7 @@ void main(void) {
     
     
     outPosition = fs_screenPosition.xyz;
+    outNormal = worldNormal;
 
     //gl_FragDepth = log2(fs_flogz) * depthCoefficient * 0.5;
 }

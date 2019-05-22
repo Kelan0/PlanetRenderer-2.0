@@ -16,6 +16,7 @@ uniform float scaleFactor;
 uniform bool lightingEnabled;
 
 out vec3 outDiffuse;
+out vec3 outGlow;
 out vec3 outNormal;
 out vec2 outSpecularEmission;
 

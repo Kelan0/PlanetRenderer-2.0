@@ -5,50 +5,43 @@
 class FrameBuffer;
 class ShaderProgram;
 class GLMesh;
-
-typedef struct __GLsync* GLsync;
+class DeferredRenderer;
+class HistogramRenderer;
 
 class ScreenRenderer {
 private:
 	GLMesh* screenQuad;
-	GLMesh* histogramPoints;
 
 	ShaderProgram* screenShader;
-	ShaderProgram* histogramShader;
 
 	FrameBuffer* screenBuffer;
-	FrameBuffer* histogramBuffer;
 
-	uint32 histogramTransferBufferCount; // The number of histogram sync buffers.
-	uint32 histogramTexture; // The histogram texture.
-	uint32 histogramCumulativeTexture; // The cumulative distribution function texture.
-	uint32 histogramTransferBuffer; // pixel buffer for asynchronous histoghram transfer from vram.
-	GLsync* histogramTransferSync; // Array of sync objects for each buffer.
-	vec4* histogramData; // The histogram data read back from the VRAM. this may be a few frames behind.
-	vec4* histogramCumulativeDistribution; // The histogram cumulative distribution
+
+	// Array of atmosphere renderers whicha re added to when a different atmosphere renderer is called, and cleared each frame. Atm should be a post process effect, after the deferred stage.
+
+	DeferredRenderer* deferredRenderer;
+	HistogramRenderer* histogramRenderer;
 
 	uint32 albedoTexture; // red, green, blue
+	uint32 glowTexture; // red, green, blue
 	uint32 normalTexture; // x, y, z
 	uint32 positionTexture; // x, y, z
 	uint32 specularEmissionTexture; // specular, emission
 	uint32 depthTexture; // depth32
 
+	uint32 screenTexture;
+
 	uint32 msaaSamples;
 	bool fixedSampleLocations;
 
 	uvec2 screenResolution;
-	uvec2 histogramResolution;
-	uint32 histogramDownsample;
-	float histogramBrightnessRange;
 
 	float eyeAdaptationRateIncr; // The adaptation rate for increasing scene brightness
 	float eyeAdaptationRateDecr; // The adaptation rate for decreasing scene brightness
-	float expectedScreenExposure; // The exposure that the screen should adapt to.
 	float currScreenExposure; // The exposure of the screen in the current frame.
 
-	uint32 histogramBinCount;
 
-	void updateHistogram(double dt);
+	void renderBloom();
 public:
 	ScreenRenderer();
 	~ScreenRenderer();
@@ -61,13 +54,15 @@ public:
 
 	void bindScreenBuffer() const;
 
-	bool setHistogram(uint32 binCount);
-
 	bool setResolution(uvec2 resolution);
 
 	uvec2 getResolution() const;
 
+	uint32 getMSAASamples() const;
+
 	uint32 getAlbedoTexture();
+
+	uint32 getGlowTexture();
 
 	uint32 getNormalTexture();
 
@@ -76,5 +71,13 @@ public:
 	uint32 getSpecularEmissionTexture();
 	
 	uint32 getDepthTexture();
+
+	uint32 getScreenTexture();
+
+	GLMesh* getScreenQuad();
+
+	DeferredRenderer* getDeferredRenderer() const;
+
+	HistogramRenderer* getHistogramRenderer() const;
 };
 

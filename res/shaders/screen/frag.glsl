@@ -1,49 +1,23 @@
 #version 330 core
 
+const vec3 directionToLight = vec3(0.26726, 0.8018, 0.5345); // [1, 3, 2]
+
 const vec2 histogramMinBound = vec2(0.68, 0.02);
 const vec2 histogramMaxBound = vec2(0.98, 0.32);
 in vec2 fs_texturePosition;
 
-uniform mat4 invViewProjectionMatrix;
-uniform float depthCoefficient;
-uniform float nearPlane;
-uniform float farPlane;
-uniform float scaleFactor;
-uniform int msaaSamples;
 uniform int histogramBinCount;
 uniform int histogramDownsample;
 uniform vec2 screenResolution;
 uniform vec2 histogramResolution;
 uniform float screenExposureMultiplier;
-uniform sampler2DMS albedoTexture;
-uniform sampler2DMS normalTexture;
-uniform sampler2DMS positionTexture;
-uniform sampler2DMS specularEmission;
-uniform sampler2DMS depthTexture;
+
+uniform sampler2D screenTexture;
 
 uniform sampler2D histogramTexture;
 uniform sampler2D histogramCumulativeTexture;
 
 out vec4 outColour;
-
-float linearizeDepth(float reconDepth) {
-    float f = farPlane;
-    float n = nearPlane;
-    float d = reconDepth;
-
-    return f / (f - n) + (f * n / (n - f)) / d;
-}
-
-float reconstructDepth(float logDepth) {
-    float f = farPlane;
-
-    return pow(2.0, logDepth * log2(f + 1.0)) - 1.0;
-}
-
-vec3 reconstructWorldPosition(vec2 uv, float linearDepth) {
-    vec4 p = invViewProjectionMatrix * (vec4(uv, linearDepth, 1.0) * 2.0 - 1.0);
-    return p.xyz / p.w;
-}
 
 float segmentDistanceSq(vec2 a, vec2 b, vec2 p) {
     vec2 a2b = b - a;
@@ -128,18 +102,13 @@ void renderHistogramDebug(inout vec3 colour) {
 void gammaCorrection(inout vec3 colour) {
     // colour = pow(colour, vec3(1.0 / 2.2));
     vec3 x = max(vec3(0.0), colour - 0.004);
-    colour = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
+    colour = ((x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06));
 }
 
 void main(void) {
-    ivec2 texelPosition = ivec2(fs_texturePosition * screenResolution);
-    vec3 worldPosition = texelFetch(positionTexture, texelPosition, 0).xyz;
-    float dist = length(worldPosition / scaleFactor);
-    
-    vec3 colour = texelFetch(albedoTexture, texelPosition, 0).rgb * screenExposureMultiplier;
+    vec3 colour = texture(screenTexture, fs_texturePosition).rgb;
     gammaCorrection(colour);
     renderHistogramDebug(colour);
 
     outColour = vec4(colour, 1.0);
-    //outColour = vec4(vec3(1.0 / (1.0 + dist)), 1.0);
 }

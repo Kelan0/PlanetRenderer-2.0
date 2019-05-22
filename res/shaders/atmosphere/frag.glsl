@@ -25,15 +25,19 @@ uniform vec3 sunDirection;
 uniform vec3 rayleighWavelength;
 uniform vec3 mieWavelength;
 uniform bool renderScreenQuad;
-uniform sampler2D atmosphereScreenTexture;
+uniform sampler2D atmosphereColourTexture;
+uniform sampler2D atmosphereBloomTexture;
 uniform sampler2DMS albedoTexture;
+uniform sampler2DMS glowTexture;
 uniform sampler2DMS normalTexture;
 uniform sampler2DMS positionTexture;
 uniform sampler2DMS specularEmissionTexture;
 uniform sampler2DMS depthTexture;
 
 out vec3 outDiffuse;
+out vec3 outGlow;
 out vec3 outNormal;
+out vec3 outPosition;
 out vec2 outSpecularEmission;
 
 
@@ -88,6 +92,7 @@ vec4 renderAtmosphere(vec3 localTerrainPosition) {
 	vec3 rayDir = getRayDirection();
 
 	float worldDist = length(localTerrainPosition - localCameraPosition);
+
 	bool insideAtmosphere = dot(rayOrig, rayOrig) < outerRadius * outerRadius;
 
 	float viewrayNear = 0.0;
@@ -118,10 +123,14 @@ vec4 renderAtmosphere(vec3 localTerrainPosition) {
 	
 	const float viewraySegmentLength = (viewrayFar - viewrayNear) / float(viewraySampleCount);
 
-	const float g = 0.76;
+	const float g = 0.99;
 	const float mu = dot(rayDir, sunDirection);
-	const float rayleighPhase = 3.0 / (16.0 * PI) * (1.0 + mu * mu);
-	const float miePhase = 3.0 / (8.0 * PI) * ((1.0 - g * g) * (1.0 + mu * mu)) / ((2.0 + g * g) * pow(1.0 + g * g - 2.0 * g * mu, 1.5));
+	float rayleighPhase = 3.0 / (16.0 * PI) * (1.0 + mu * mu);
+	float miePhase = 3.0 / (8.0 * PI) * ((1.0 - g * g) * (1.0 + mu * mu)) / ((2.0 + g * g) * pow(1.0 + g * g - 2.0 * g * mu, 1.5));
+
+	if (worldDist > 0.0) {
+		miePhase = 0.0;
+	}
 
 	vec3 rayleighSum = vec3(0.0);
 	vec3 mieSum = vec3(0.0);
@@ -166,7 +175,7 @@ vec4 renderAtmosphere(vec3 localTerrainPosition) {
 		
 		for (j = 0; j < lightraySampleCount; j++) {
 			lightraySamplePoint = viewraySamplePoint + sunDirection * (lightrayCurrSample + lightraySegmentLength * 0.5);
-			lightraySampleHeight = (length(lightraySamplePoint) - innerRadius);
+			lightraySampleHeight = length(lightraySamplePoint) - innerRadius;
 
 			if (lightraySampleHeight < 0.0) {
 				break;
@@ -219,13 +228,16 @@ void main(void) {
 
 		vec4 atmosphereColour = renderAtmosphere(localTerrainPosition);
 		vec3 worldColour = texelFetch(albedoTexture, texelPosition, 0).rgb;
-		
-		outDiffuse = worldColour.rgb + atmosphereColour.rgb;
-		//outDiffuse = worldColour.rgb * (1.0 - atmosphereColour.a) + atmosphereColour.rgb * atmosphereColour.a;
-		
-		
+		vec3 finalColour = worldColour.rgb + atmosphereColour.rgb;
+		//vec3 finalColour = worldColour.rgb * (1.0 - atmosphereColour.a) + atmosphereColour.rgb * atmosphereColour.a;
+		outDiffuse = finalColour;
+		outGlow = 
+			max(max(finalColour.r, finalColour.g), finalColour.b) > 1.0
+			//dot(finalColour, vec3(0.299, 0.587, 0.114)) > 1.0
+			? finalColour : vec3(0.0);
 	} else {
-		outDiffuse = texture(atmosphereScreenTexture, fs_vertexPosition).rgb;
+		outDiffuse = texture(atmosphereColourTexture, fs_vertexPosition).rgb;
+		outGlow = texture(atmosphereBloomTexture, fs_vertexPosition).rgb;
 		//outNormal = texelFetch(normalTexture, texelPosition, 0).xyz;
 		//outSpecularEmission = texelFetch(specularEmissionTexture, texelPosition, 0).xy;
 		//gl_FragDepth = texelFetch(depthTexture, texelPosition, 0).r;
