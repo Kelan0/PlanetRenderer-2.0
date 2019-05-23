@@ -3,10 +3,12 @@
 #include "core/engine/geometry/MeshData.h"
 #include "core/engine/renderer/Camera.h"
 #include "core/engine/renderer/ShaderProgram.h"
+#include "core/engine/renderer/ScreenRenderer.h"
+#include "core/engine/renderer/postprocess/AtmosphereRenderer.h"
 #include "core/engine/scene/SceneGraph.h"
 #include "core/engine/terrain/TerrainQuad.h"
 #include "core/engine/terrain/TerrainRenderer.h"
-#include "core/engine/terrain/AtmosphereRenderer.h"
+#include "core/engine/terrain/Atmosphere.h"
 #include "core/engine/terrain/TileSupplier.h"
 #include "core/engine/scene/bounding/BoundingVolume.h"
 #include "core/util/InputHandler.h"
@@ -23,7 +25,7 @@ Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSpli
 
 	this->tileSupplier = new TileSupplier(this);
 	this->terrainRenderer = new TerrainRenderer(8);
-	this->atmosphereRenderer = new AtmosphereRenderer(this);
+	this->atmosphere = new Atmosphere(this);
 
 	this->faceOrientations[X_NEG][0] = fvec3(0, 0, +1);
 	this->faceOrientations[X_NEG][1] = fvec3(-1, 0, 0);
@@ -108,7 +110,7 @@ void Planet::render(double partialTicks, double dt) {
 	this->terrainRenderer->render(this, Z_NEG, this->faces[Z_NEG], partialTicks, dt);
 	this->terrainRenderer->render(this, Z_POS, this->faces[Z_POS], partialTicks, dt);
 
-	this->atmosphereRenderer->render(partialTicks, dt);
+	//SCREEN_RENDERER.getAtmosphereRenderer()->addAtmosphere(this->atmosphere);
 
 	this->tileSupplier->update();
 

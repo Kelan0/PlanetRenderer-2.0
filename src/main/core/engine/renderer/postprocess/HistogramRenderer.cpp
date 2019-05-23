@@ -32,7 +32,7 @@ HistogramRenderer::~HistogramRenderer()
 {
 }
 
-void HistogramRenderer::render(double partialTicks, double dt) {
+bool HistogramRenderer::render(double partialTicks, double dt) {
 
 	this->histogramFrameBuffer->bind(this->binCount, 1);
 	glEnable(GL_TEXTURE_2D);
@@ -156,6 +156,8 @@ void HistogramRenderer::render(double partialTicks, double dt) {
 			}
 		}
 	}
+
+	return true;
 }
 
 void HistogramRenderer::applyUniforms(ShaderProgram* program) {

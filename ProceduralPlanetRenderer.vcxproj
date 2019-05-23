@@ -210,13 +210,14 @@ xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuratio
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\main\core\engine\renderer\postprocess\AtmosphereRenderer.cpp" />
     <ClCompile Include="src\main\core\engine\renderer\postprocess\HistogramRenderer.cpp" />
     <ClCompile Include="src\main\core\engine\renderer\postprocess\DeferredRenderer.cpp" />
     <ClCompile Include="src\main\core\engine\renderer\postprocess\BloomEffect.cpp" />
     <ClCompile Include="src\main\core\engine\renderer\postprocess\FullscreenQuad.cpp" />
     <ClCompile Include="src\main\core\engine\renderer\FrameBuffer.cpp" />
     <ClCompile Include="src\main\core\engine\renderer\ScreenRenderer.cpp" />
-    <ClCompile Include="src\main\core\engine\terrain\AtmosphereRenderer.cpp" />
+    <ClCompile Include="src\main\core\engine\terrain\Atmosphere.cpp" />
     <ClCompile Include="src\main\core\engine\scene\bounding\AxisAlignedBB.cpp" />
     <ClCompile Include="src\main\core\engine\scene\bounding\BoundingTests.cpp" />
     <ClCompile Include="src\main\core\engine\scene\bounding\Frustum.cpp" />
@@ -243,13 +244,14 @@ xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuratio
     <ClCompile Include="src\main\core\engine\terrain\TileSupplier.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\main\core\engine\renderer\postprocess\AtmosphereRenderer.h" />
     <ClInclude Include="src\main\core\engine\renderer\postprocess\HistogramRenderer.h" />
     <ClInclude Include="src\main\core\engine\renderer\postprocess\DeferredRenderer.h" />
     <ClInclude Include="src\main\core\engine\renderer\postprocess\BloomEffect.h" />
     <ClInclude Include="src\main\core\engine\renderer\postprocess\FullscreenQuad.h" />
     <ClInclude Include="src\main\core\engine\renderer\FrameBuffer.h" />
     <ClInclude Include="src\main\core\engine\renderer\ScreenRenderer.h" />
-    <ClInclude Include="src\main\core\engine\terrain\AtmosphereRenderer.h" />
+    <ClInclude Include="src\main\core\engine\terrain\Atmosphere.h" />
     <ClInclude Include="src\main\core\engine\scene\bounding\BoundingVolume.h" />
     <ClInclude Include="src\main\core\engine\terrain\Planet.h" />
     <ClInclude Include="src\main\core\engine\geometry\Displacement.h" />

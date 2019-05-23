@@ -38,7 +38,7 @@ public:
 	HistogramRenderer(ScreenRenderer* screenRenderer);
 	~HistogramRenderer();
 
-	void render(double partialTicks, double dt);
+	bool render(double partialTicks, double dt);
 
 	void applyUniforms(ShaderProgram* program);
 

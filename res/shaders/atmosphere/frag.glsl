@@ -24,21 +24,11 @@ uniform float sunIntensity;
 uniform vec3 sunDirection;
 uniform vec3 rayleighWavelength;
 uniform vec3 mieWavelength;
-uniform bool renderScreenQuad;
-uniform sampler2D atmosphereColourTexture;
-uniform sampler2D atmosphereBloomTexture;
-uniform sampler2DMS albedoTexture;
-uniform sampler2DMS glowTexture;
-uniform sampler2DMS normalTexture;
+uniform sampler2D screenTexture;
 uniform sampler2DMS positionTexture;
-uniform sampler2DMS specularEmissionTexture;
-uniform sampler2DMS depthTexture;
 
 out vec3 outDiffuse;
 out vec3 outGlow;
-out vec3 outNormal;
-out vec3 outPosition;
-out vec2 outSpecularEmission;
 
 
 float linearizeDepth(float reconDepth) {
@@ -223,26 +213,15 @@ void main(void) {
 
 	ivec2 texelPosition = ivec2(fs_vertexPosition * screenResolution);
 	
-	if (!renderScreenQuad) {
-		vec3 localTerrainPosition = (texelFetch(positionTexture, texelPosition, 0).xyz / scaleFactor) * 1000.0 + localCameraPosition;
+	vec3 localTerrainPosition = (texelFetch(positionTexture, texelPosition, 0).xyz / scaleFactor) * 1000.0 + localCameraPosition;
 
-		vec4 atmosphereColour = renderAtmosphere(localTerrainPosition);
-		vec3 worldColour = texelFetch(albedoTexture, texelPosition, 0).rgb;
-		vec3 finalColour = worldColour.rgb + atmosphereColour.rgb;
-		//vec3 finalColour = worldColour.rgb * (1.0 - atmosphereColour.a) + atmosphereColour.rgb * atmosphereColour.a;
-		outDiffuse = finalColour;
-		outGlow = 
-			max(max(finalColour.r, finalColour.g), finalColour.b) > 1.0
-			//dot(finalColour, vec3(0.299, 0.587, 0.114)) > 1.0
-			? finalColour : vec3(0.0);
-	} else {
-		outDiffuse = texture(atmosphereColourTexture, fs_vertexPosition).rgb;
-		outGlow = texture(atmosphereBloomTexture, fs_vertexPosition).rgb;
-		//outNormal = texelFetch(normalTexture, texelPosition, 0).xyz;
-		//outSpecularEmission = texelFetch(specularEmissionTexture, texelPosition, 0).xy;
-		//gl_FragDepth = texelFetch(depthTexture, texelPosition, 0).r;
-	}
-
-
-    //gl_FragDepth = 0.9999999;
+	vec4 atmosphereColour = renderAtmosphere(localTerrainPosition);
+	vec3 worldColour = texelFetch(screenTexture, texelPosition, 0).rgb;
+	vec3 finalColour = worldColour.rgb + atmosphereColour.rgb;
+	//vec3 finalColour = worldColour.rgb * (1.0 - atmosphereColour.a) + atmosphereColour.rgb * atmosphereColour.a;
+	outDiffuse = finalColour;
+	//outGlow = 
+	//	max(max(finalColour.r, finalColour.g), finalColour.b) > 1.0
+	//	//dot(finalColour, vec3(0.299, 0.587, 0.114)) > 1.0
+	//	? finalColour : vec3(0.0);
 }

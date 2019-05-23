@@ -6,6 +6,7 @@ class FrameBuffer;
 class ShaderProgram;
 class GLMesh;
 class DeferredRenderer;
+class AtmosphereRenderer;
 class HistogramRenderer;
 
 class ScreenRenderer {
@@ -20,6 +21,7 @@ private:
 	// Array of atmosphere renderers whicha re added to when a different atmosphere renderer is called, and cleared each frame. Atm should be a post process effect, after the deferred stage.
 
 	DeferredRenderer* deferredRenderer;
+	AtmosphereRenderer* atmosphereRenderer;
 	HistogramRenderer* histogramRenderer;
 
 	uint32 albedoTexture; // red, green, blue
@@ -77,6 +79,8 @@ public:
 	GLMesh* getScreenQuad();
 
 	DeferredRenderer* getDeferredRenderer() const;
+
+	AtmosphereRenderer* getAtmosphereRenderer() const;
 
 	HistogramRenderer* getHistogramRenderer() const;
 };

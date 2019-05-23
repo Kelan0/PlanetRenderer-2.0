@@ -4,6 +4,7 @@
 #include "core/engine/renderer/GLMesh.h"
 #include "core/engine/renderer/FrameBuffer.h"
 #include "core/engine/renderer/postprocess/DeferredRenderer.h"
+#include "core/engine/renderer/postprocess/AtmosphereRenderer.h"
 #include "core/engine/renderer/postprocess/HistogramRenderer.h"
 #include "core/engine/scene/SceneGraph.h"
 #include "core/engine/terrain/Planet.h"
@@ -44,6 +45,7 @@ void ScreenRenderer::init() {
 	this->screenQuad = new GLMesh(screenMesh, screenAttributes);
 
 	this->deferredRenderer = new DeferredRenderer(this);
+	this->atmosphereRenderer = new AtmosphereRenderer(this);
 	this->histogramRenderer = new HistogramRenderer(this);
 
 	int32 width, height;
@@ -60,8 +62,13 @@ void ScreenRenderer::render(double partialTicks, double dt) {
 	glDisable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	this->deferredRenderer->render(partialTicks, dt);
-	this->screenTexture = this->deferredRenderer->getScreenTexture();
+	if (this->deferredRenderer->render(partialTicks, dt)) {
+		this->screenTexture = this->deferredRenderer->getScreenTexture();
+	}
+
+	if (this->atmosphereRenderer->render(partialTicks, dt)) {
+		this->screenTexture = this->atmosphereRenderer->getScreenTexture();
+	}
 
 	this->histogramRenderer->render(partialTicks, dt);
 
@@ -201,7 +208,8 @@ bool ScreenRenderer::setResolution(uvec2 resolution) {
 		logInfo("Validating screen framebuffer");
 		this->screenBuffer->checkStatus(true);
 
-		this->deferredRenderer->initializeScreenResolution(this->screenResolution);	
+		this->deferredRenderer->initializeScreenResolution(this->screenResolution);
+		this->atmosphereRenderer->initializeScreenResolution(this->screenResolution);
 		this->histogramRenderer->initializeScreenResolution(this->screenResolution);
 
 		FrameBuffer::unbind();
@@ -252,6 +260,10 @@ GLMesh* ScreenRenderer::getScreenQuad() {
 
 DeferredRenderer* ScreenRenderer::getDeferredRenderer() const {
 	return this->deferredRenderer;
+}
+
+AtmosphereRenderer* ScreenRenderer::getAtmosphereRenderer() const {
+	return this->atmosphereRenderer;
 }
 
 HistogramRenderer* ScreenRenderer::getHistogramRenderer() const {

@@ -24,7 +24,7 @@ public:
 
 	void initializeScreenResolution(uvec2 screenResolution);
 
-	void render(double partialTicks, double dt);
+	bool render(double partialTicks, double dt);
 
 	uvec2 getScreenResolution() const;
 

@@ -24,6 +24,7 @@ DeferredRenderer::DeferredRenderer(ScreenRenderer* screenRenderer):
 DeferredRenderer::~DeferredRenderer() {
 	glDeleteTextures(1, &this->screenTexture);
 
+	delete this->deferredShader;
 	delete this->deferredFrameBuffer;
 }
 
@@ -58,7 +59,7 @@ void DeferredRenderer::initializeScreenResolution(uvec2 screenResolution) {
 	}
 }
 
-void DeferredRenderer::render(double partialTicks, double dt) {
+bool DeferredRenderer::render(double partialTicks, double dt) {
 
 	this->deferredFrameBuffer->bind(this->screenResolution.x, this->screenResolution.y);
 	this->deferredShader->useProgram(true);
@@ -95,6 +96,8 @@ void DeferredRenderer::render(double partialTicks, double dt) {
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->screenRenderer->getDepthTexture());
 	
 	this->screenRenderer->getScreenQuad()->draw();
+
+	return true;
 }
 
 uvec2 DeferredRenderer::getScreenResolution() const {

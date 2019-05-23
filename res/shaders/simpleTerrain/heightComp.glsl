@@ -1,5 +1,16 @@
 #version 430 core
 
+struct TerrainGenerator {
+    float frequency;
+    float lacunarity;
+    float gain;
+    float amplitude;
+    int octaves;
+    float noiseExponent;
+    bool absolute;
+    bool oneMinus;
+};
+
 writeonly uniform image2DArray tileTexture;
 uniform int textureIndex;
 uniform float planetRadius;
@@ -83,14 +94,8 @@ vec4 getInterp(vec2 pos) {
     return uvUV.xzzx * uvUV.yyww;
 }
 
-float getNoise(vec3 coord) {
+float getNoise(vec3 coord, float frequency, float lacunarity, float gain, float amplitude, int octaves) {
     int i = 0;
-
-    float frequency = 2.0;
-    float lacunarity = 2.0;
-    float gain = 0.5;
-    float amplitude = 1.0;
-    int octaves = 15;
 
     coord *= frequency;
 
@@ -102,7 +107,29 @@ float getNoise(vec3 coord) {
         noiseSum += snoise(coord) * amplitude;
     }
 
-    return abs(noiseSum);
+    return noiseSum;
+}
+
+float getHeight(vec3 coord) {
+
+    float frequency = 0.4;
+    float lacunarity = 2.0;
+    float gain = 0.5;
+    float amplitude = 1.0;
+    int octaves = 10;
+
+    float height = 0.0;
+
+    float largeFeatures = getNoise(coord, 0.4, 2.0, 0.5, 1.0, 12);
+    
+    float smallFeatures = getNoise(coord, 5.2, 2.1, 0.33, 0.2, 22);
+    
+    float mountainFeatures = getNoise(coord, 13.8, 2.0, 0.5, 0.5, 11);
+    mountainFeatures = pow(0.5 - abs(mountainFeatures), 2.4);
+
+    float mountainMultiplier = getNoise(coord, 1.8, 1.16, 0.42, 1.0, 16);
+
+    return largeFeatures + (pow(largeFeatures, 3.0));
 }
 
 vec3 getSurfacePosition(float height, vec3 n, vec4 interp) {
@@ -124,9 +151,9 @@ void main(void) {
     vec3 s10 = normalize((quadNormals * i10).xyz);
     vec3 s01 = normalize((quadNormals * i01).xyz);
 
-    float n00 = getNoise(s00);
-    float n10 = getNoise(s10);
-    float n01 = getNoise(s01);
+    float n00 = getHeight(s00);
+    float n10 = getHeight(s10);
+    float n01 = getHeight(s01);
     
     vec3 normal;
 

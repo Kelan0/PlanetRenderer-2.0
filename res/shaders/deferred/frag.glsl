@@ -27,10 +27,10 @@ void main(void) {
     vec3 colour = albedo;
 
     // TODO: specular/emission, multiple lights, MSAA
-    if (distSq > 0.0) {
-        float nDotL = clamp(dot(normal, directionToLight), 0.0, 1.0);
-        colour *= nDotL;
-    }
+    //if (distSq > 0.0) {
+    //    float nDotL = clamp(dot(normal, directionToLight), 0.0, 1.0);
+    //    colour *= nDotL;
+    //}
 
     outColour = vec4(colour, 1.0);
 }
