@@ -140,7 +140,6 @@ void TerrainRenderer::render(Planet* planet, CubeFace face, TerrainQuad* terrain
 	//logInfo("%f ms spent testing visibility", visibilietTestTime);
 
 	if (!instances.empty()) {
-
 		fvec3 viewerPosition = camera->getPosition();
 		this->terrainProgram->useProgram(true);
 
@@ -158,8 +157,6 @@ void TerrainRenderer::render(Planet* planet, CubeFace face, TerrainQuad* terrain
 
 		// logInfo("%d instances", instances.size());
 		this->terrainMesh->draw(instances.size(), 0, 0, this->terrainInstanceBuffer);
-
-		this->terrainProgram->useProgram(false);
 	}
 	uint64 t2 = Time::now();
 
@@ -178,6 +175,7 @@ void TerrainRenderer::doRender(TerrainQuad* terrainQuad, int depth, double r, dv
 		if (visible) {
 			if (terrainQuad->isLeaf()) {
 				TerrainInfo info = TerrainInfo();
+				info.quad = terrainQuad;
 
 				const dmat4 normals = terrainQuad->getWorldNormals();
 				dmat4 corners = terrainQuad->getWorldCorners();

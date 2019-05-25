@@ -47,6 +47,7 @@ void init() {
 
 	float r = 6000;
 	planet = new Planet(fvec3(), r, 2.0F, 24);
+	SCENE_GRAPH.getRoot()->addChild("planet", planet);
 	SCENE_GRAPH.getCamera()->setPosition(normalize(fvec3(0.0F, 1.0, -0.6)) * (r + 20.0F));
 
 	//GameObject* testPlane = new GameObject(SCENE_GRAPH.getRoot(), "testPlane", Transformation(vec3(0.0F, -3.0F, 0.0F)));
@@ -84,7 +85,7 @@ void render(double partialTicks, double dt) {
 		double elapsed = Time::time_cast<Time::time_unit, Time::seconds, double>(now - lastTime);
 
 		if (elapsed >= 1.0) {
-			logInfo("%d fps, %.3f GL/km, %.4f km altitude, [%.12f, %.12f, %.12f], move speed = %f", fps, Planet::scaleFactor, planet->getAltitude(planet->worldToLocalPoint(camera->getPosition())), camera->getPosition().x, camera->getPosition().x, camera->getPosition().z, viewerMoveSpeed);
+			logInfo("%d fps, %.3f GL/km, %.4f km altitude, move speed = %f", fps, Planet::scaleFactor, planet->getAltitude(planet->worldToLocalPoint(camera->getPosition())), viewerMoveSpeed);
 			fps = 0;
 			lastTime = now;
 		}
@@ -216,9 +217,7 @@ void render(double partialTicks, double dt) {
 
 	camera->setOrientation(orientation);
 
-	camera->render(partialTicks, dt);
-	planet->render(partialTicks, dt);
-	planet->update(dt);
+	//planet->render(&SCENE_GRAPH, partialTicks, dt);
 
 	Vertex vt[2] = {
 		Vertex(dvec3(0.0, 10000.0, 0.0)),
@@ -231,6 +230,7 @@ void render(double partialTicks, double dt) {
 }
 
 void update(double dt) {
+	//planet->update(&SCENE_GRAPH, dt);
 }
 
 int main(int argc, char* argv[]) {

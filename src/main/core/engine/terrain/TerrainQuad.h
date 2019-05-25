@@ -85,6 +85,10 @@ public:
 
 	bool isLeaf() const;
 
+	bool isRenderLeaf();
+
+	bool isRenderable();
+
 	AxisAlignedBB getBoundingBox() const;
 
 	Frustum getDeformedBoundingBox() const;

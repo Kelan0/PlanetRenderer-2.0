@@ -1,6 +1,8 @@
 #pragma once
 
 #include "core/Core.h"
+#include "core/engine/scene/SceneGraph.h"
+#include "core/engine/scene/GameObject.h"
 
 class TileSupplier;
 class TerrainRenderer;
@@ -18,7 +20,7 @@ typedef enum CubeFace {
 	Z_NEG = 4, Z_POS = 5,
 } CubeFace;
 
-class Planet {
+class Planet : public GameObject {
 private:
 	friend class TerrainRenderer;
 	friend class TerrainQuad;
@@ -62,9 +64,9 @@ public:
 	Planet(dvec3 center, double radius, double splitThreshold, int32 maxSplitDepth);
 	~Planet();
 
-	void render(double partialTicks, double dt);
+	void render(SceneGraph* sceneGraph, double partialTicks, double dt) override;
 
-	void update(double dt);
+	void update(SceneGraph* sceneGraph, double dt) override;
 
 	void applyUniforms(ShaderProgram* program);
 

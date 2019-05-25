@@ -67,7 +67,7 @@ void TileData::onReadbackReceived() {
 	for (int i = 0; i < supplier->getTileSize(); i++) {
 		for (int j = 0; j < supplier->getTileSize(); j++) {
 			double h = this->getTextureData(uvec2(i, j)).w;
-
+	
 			if (isnan(h)) {
 				invalidPixels++;
 			} else {
@@ -76,7 +76,7 @@ void TileData::onReadbackReceived() {
 			}
 		}
 	}
-
+	
 	if (invalidPixels > 0) {
 		logError("Invalid readback result (%d of %d pixels)", invalidPixels, supplier->getTileSize() * supplier->getTileSize());
 	}
@@ -259,7 +259,7 @@ TileSupplier::TileSupplier(Planet* planet, uint32 seed, uint32 textureCapacity, 
 
 	this->maxAsyncReadbacks = 10;
 	this->asyncReadbackSlots = new AsyncReadbackRequest*[this->maxAsyncReadbacks];
-	this->asyncReadbackTimeout = 1.0; // Timeout after 1 second.
+	this->asyncReadbackTimeout = 3.0; // Timeout after 3 second.
 
 	for (int i = 0; i < this->maxAsyncReadbacks; i++) {
 		this->asyncReadbackSlots[i] = NULL;
@@ -408,16 +408,16 @@ void TileSupplier::update() {
 			}
 		}
 
-		logInfo("%d tiles exist, %d active tiles, %d idle tiles. %d textures generated, %d textures remaining, %d tiles expired, %d async readbacks, %d pending readbacks",
-			this->activeTiles.size() + this->idleTiles.size(),
-			this->activeTiles.size(),
-			this->idleTiles.size(),
-			this->numTexturesGenerated,
-			this->textureGenerationQueue.size(),
-			this->numTilesExpired,
-			this->textureReadbackQueue.size(),
-			pendingReadbacks
-		);
+		//logInfo("%d tiles exist, %d active tiles, %d idle tiles. %d textures generated, %d textures remaining, %d tiles expired, %d async readbacks, %d pending readbacks",
+		//	this->activeTiles.size() + this->idleTiles.size(),
+		//	this->activeTiles.size(),
+		//	this->idleTiles.size(),
+		//	this->numTexturesGenerated,
+		//	this->textureGenerationQueue.size(),
+		//	this->numTilesExpired,
+		//	this->textureReadbackQueue.size(),
+		//	pendingReadbacks
+		//);
 
 		this->numTexturesGenerated = 0;
 		this->numTilesExpired = 0;
@@ -506,7 +506,9 @@ void TileSupplier::update() {
 		std::sort(this->textureReadbackQueue.begin(), this->textureReadbackQueue.begin() + idleEndReadbackIndex, comparator);
 		std::sort(this->textureReadbackQueue.begin() + idleEndReadbackIndex, this->textureReadbackQueue.end(), comparator);
 
-		logInfo("Found %d tiles that need generation", this->textureGenerationQueue.size());
+		if (!this->textureGenerationQueue.empty()) {
+			logInfo("Found %d tiles that need generation", this->textureGenerationQueue.size());
+		}
 	} else { // actual generation pass
 		if (!this->textureGenerationQueue.empty()) {
 			uint64 start = Time::now();
@@ -583,8 +585,11 @@ void TileSupplier::update() {
 					}
 					
 					std::memcpy(request->tile->textureData, data, readSize);
-					//glTextureSubImage3D(this->textureArray, 0, 0, 0, request->tile->textureIndex, this->getTileTextureSize(), this->getTileTextureSize(), 1, GL_RGBA, GL_FLOAT, data); // debug test
-		
+					
+					// ================= REMOVE THIS =================
+					glTextureSubImage3D(this->textureArray, 0, 0, 0, request->tile->textureIndex, this->getTileSize(), this->getTileSize(), 1, GL_RGBA, GL_FLOAT, data); // debug test
+					// ===============================================
+
 					request->tile->onReadbackReceived();
 					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 		

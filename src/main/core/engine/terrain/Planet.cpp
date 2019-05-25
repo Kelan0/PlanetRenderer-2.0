@@ -5,7 +5,6 @@
 #include "core/engine/renderer/ShaderProgram.h"
 #include "core/engine/renderer/ScreenRenderer.h"
 #include "core/engine/renderer/postprocess/AtmosphereRenderer.h"
-#include "core/engine/scene/SceneGraph.h"
 #include "core/engine/terrain/TerrainQuad.h"
 #include "core/engine/terrain/TerrainRenderer.h"
 #include "core/engine/terrain/Atmosphere.h"
@@ -23,7 +22,7 @@ double Planet::currScaleFactor = 1.0;
 double Planet::prevScaleFactor = 1.0;
 
 Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSplitDepth):
-	center(center), radius(radius), invRadius(1.0 / radius), splitThreshold(splitThreshold), maxSplitDepth(maxSplitDepth) {
+	GameObject(), center(center), radius(radius), invRadius(1.0 / radius), splitThreshold(splitThreshold), maxSplitDepth(maxSplitDepth) {
 
 	this->tileSupplier = new TileSupplier(this);
 	this->terrainRenderer = new TerrainRenderer(8);
@@ -95,7 +94,9 @@ Planet::~Planet() {
 
 }
 
-void Planet::render(double partialTicks, double dt) {
+void Planet::render(SceneGraph* sceneGraph, double partialTicks, double dt) {
+	GameObject::render(sceneGraph, partialTicks, dt);
+
 	uint64 a = Time::now();
 
 	Planet::scaleFactor = Planet::prevScaleFactor * (1.0 - partialTicks) + Planet::currScaleFactor *  partialTicks;
@@ -122,7 +123,9 @@ void Planet::render(double partialTicks, double dt) {
 	//logInfo("Took %f ms to render terrain", (b - a) / 1000000.0);
 }
 
-void Planet::update(double dt) {
+void Planet::update(SceneGraph* sceneGraph, double dt) {
+	GameObject::update(sceneGraph, dt);
+
 	uint64 a = Time::now();
 	bool changed = false;
 
@@ -175,7 +178,7 @@ void Planet::applyUniforms(ShaderProgram* program) {
 	program->setUniform("renormalizeSphere", Planet::scaleFactor < 1.0);
 }
 
-IntersectionType Planet::getVisibility(CubeFace face, BoundingVolume * bound, bool horizonTest) {
+IntersectionType Planet::getVisibility(CubeFace face, BoundingVolume* bound, bool horizonTest) {
 	if (bound != NULL) {
 
 		const Camera* camera = SCENE_GRAPH.getCamera();

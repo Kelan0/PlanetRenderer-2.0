@@ -19,6 +19,7 @@ enum CubeFace;
 }, [](Vertex v) -> std::vector<float> { return std::vector<float> {float(v.position.x), float(v.position.z)}; })
 
 struct TerrainInfo {
+	TerrainQuad* quad;
 	fvec3 debug;
 	int32 textureIndex;
 	ivec4 neighbourDivisions;

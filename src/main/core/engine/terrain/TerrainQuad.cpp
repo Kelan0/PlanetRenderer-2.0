@@ -88,8 +88,7 @@ void TerrainQuad::init() {
 
 	if (this->faceBounds == NULL) {
 		this->faceBounds = new AxisAlignedBB(dvec3(xmin, 0.0, ymin), dvec3(xmax, 0.0, ymax));
-	}
-	else {
+	} else {
 		this->faceBounds->setMinMax(dvec3(xmin, 0.0, ymin), dvec3(xmax, 0.0, ymax));
 	}
 
@@ -105,8 +104,7 @@ void TerrainQuad::init() {
 
 	if (this->deformedBounds == NULL) {
 		this->deformedBounds = new Frustum(ltn, rtn, rbn, lbn, ltf, rtf, rbf, lbf);
-	}
-	else {
+	} else {
 		this->deformedBounds->set(ltn, rtn, rbn, lbn, ltf, rtf, rbf, lbf);
 	}
 
@@ -136,11 +134,6 @@ void TerrainQuad::init() {
 }
 
 void TerrainQuad::update(double dt) {
-
-	if (this->tileData != NULL) {
-		this->maxHeight = tileData->getMaxHeight();
-		this->minHeight = tileData->getMinHeight();
-	}
 
 	dvec3 cameraPosition = this->planet->getLocalCameraPosition();
 	double distanceSq = glm::distance2(this->localPosition, cameraPosition);
@@ -177,6 +170,15 @@ void TerrainQuad::update(double dt) {
 		this->changed |= this->children[TOP_RIGHT]->changed;
 		this->changed |= this->children[BOTTOM_LEFT]->changed;
 		this->changed |= this->children[BOTTOM_RIGHT]->changed;
+	}
+
+	if (this->tileData != NULL) {
+		// If the maximum or minimum height of the tile data does not match the current saved values, reinitialize the bounds.
+		if (glm::max(abs(this->tileData->getMaxHeight() - this->maxHeight), abs(this->tileData->getMinHeight() - this->minHeight)) > 1e-12) {
+			this->maxHeight = tileData->getMaxHeight();
+			this->minHeight = tileData->getMinHeight();
+			this->init();
+		}
 	}
 }
 
@@ -499,6 +501,37 @@ void TerrainQuad::notifyNeighbours() {
 
 bool TerrainQuad::isLeaf() const {
 	return this->children == NULL;
+}
+
+bool TerrainQuad::isRenderLeaf() {
+	return this->isLeaf();
+	////	If all children are renderable,
+	////		return false. This is not a render leaf, as all children can be rendered.
+	////	Else
+	////		If this is renderable,
+	////			return true, and render this until all children can be rendered.
+	////		Else
+	////			return false
+	//
+	//if (this->isLeaf()) {
+	//	return this->isRenderable();
+	//}
+	//
+	//return false;
+	//
+	////// If all children are renderable
+	////if (this->children[TOP_LEFT]->isRenderLeaf() &&
+	////	this->children[TOP_RIGHT]->isRenderLeaf() &&
+	////	this->children[BOTTOM_LEFT]->isRenderLeaf() &&
+	////	this->children[BOTTOM_RIGHT]->isRenderLeaf()) {
+	////	return false;
+	////} else { // Any child cannot be rendered, and would cause a world hole.
+	////	return this->isRenderable();
+	////}
+}
+
+bool TerrainQuad::isRenderable() {
+	return this->getTileData() != NULL && this->tileData->isGenerated() && !this->tileData->isAwaitingReadback();
 }
 
 AxisAlignedBB TerrainQuad::getBoundingBox() const {

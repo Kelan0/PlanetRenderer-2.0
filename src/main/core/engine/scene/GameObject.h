@@ -32,9 +32,9 @@ public:
 
 	~GameObject();
 
-	void render(SceneGraph* sceneGraph, double partialTicks, double dt);
+	virtual void render(SceneGraph* sceneGraph, double partialTicks, double dt);
 
-	void update(SceneGraph* sceneGraph, double dt);
+	virtual void update(SceneGraph* sceneGraph, double dt);
 
 	std::string getName();
 
