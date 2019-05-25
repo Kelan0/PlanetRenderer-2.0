@@ -106,7 +106,7 @@ void gammaCorrection(inout vec3 colour) {
 }
 
 void main(void) {
-    vec3 colour = texture(screenTexture, fs_texturePosition).rgb;
+    vec3 colour = texture(screenTexture, fs_texturePosition).rgb * screenExposureMultiplier;
     gammaCorrection(colour);
     renderHistogramDebug(colour);
 

@@ -121,15 +121,19 @@ float getHeight(vec3 coord) {
     float height = 0.0;
 
     float largeFeatures = getNoise(coord, 0.4, 2.0, 0.5, 1.0, 12);
-    
     float smallFeatures = getNoise(coord, 5.2, 2.1, 0.33, 0.2, 22);
+    float tinyFeatures = getNoise(coord, 18.0, 1.8, 0.6, 0.03, 22);
+    float mountainFeatures = getNoise(coord, 4.0, 2.0, 0.5, 0.5, 11);
+    mountainFeatures = pow((1.0 - abs(mountainFeatures)) * 2.0 - 1.0, 6.0);
+
+    float mountainMultiplier = 0.0;
+
+    if (largeFeatures > 0.0) {
+        mountainMultiplier = fract(max(0.0, pow(largeFeatures + 0.5, 2.0))) * 2.0 - 1.0;
+        mountainMultiplier = min(1.0, max(0.0, (mountainMultiplier < 0.0 ? -mountainMultiplier : +mountainMultiplier) * 1.6 - 0.7) * 1.2) * largeFeatures;
+    }
     
-    float mountainFeatures = getNoise(coord, 13.8, 2.0, 0.5, 0.5, 11);
-    mountainFeatures = pow(0.5 - abs(mountainFeatures), 2.4);
-
-    float mountainMultiplier = getNoise(coord, 1.8, 1.16, 0.42, 1.0, 16);
-
-    return largeFeatures + (pow(largeFeatures, 3.0));
+    return largeFeatures + smallFeatures + tinyFeatures + mountainMultiplier * mountainFeatures;
 }
 
 vec3 getSurfacePosition(float height, vec3 n, vec4 interp) {
@@ -142,10 +146,10 @@ void main(void) {
     ivec3 storePos = ivec3(gl_GlobalInvocationID.xy, textureIndex);
     vec2 quadPosition = vec2(gl_GlobalInvocationID.xy) / vec2(gl_WorkGroupSize.xy * gl_NumWorkGroups.xy);
 
-    float f = 1.0 / 64.0;
+    float mountainMultiplier = 1.0 / 64.0;
     vec4 i00 = getInterp(quadPosition);
-    vec4 i10 = getInterp(quadPosition + vec2(f, 0.0));
-    vec4 i01 = getInterp(quadPosition + vec2(0.0, f));
+    vec4 i10 = getInterp(quadPosition + vec2(mountainMultiplier, 0.0));
+    vec4 i01 = getInterp(quadPosition + vec2(0.0, mountainMultiplier));
     
     vec3 s00 = normalize((quadNormals * i00).xyz);
     vec3 s10 = normalize((quadNormals * i10).xyz);

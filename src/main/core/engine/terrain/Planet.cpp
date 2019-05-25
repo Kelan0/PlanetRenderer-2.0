@@ -19,6 +19,8 @@
 double Planet::minScaleFactor = 0.001;
 double Planet::maxScaleFactor = 1000.0;
 double Planet::scaleFactor = 1.0;
+double Planet::currScaleFactor = 1.0;
+double Planet::prevScaleFactor = 1.0;
 
 Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSplitDepth):
 	center(center), radius(radius), invRadius(1.0 / radius), splitThreshold(splitThreshold), maxSplitDepth(maxSplitDepth) {
@@ -76,7 +78,7 @@ Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSpli
 	this->tileSupplierDebugState = 0;
 
 	this->elevationUnderCamera = 0.0;
-	this->elevationScale = 130.0;
+	this->elevationScale = 40.0;
 	this->horizonRadius = this->radius - this->elevationScale;
 	this->invHorizonRadius = 1.0 / this->horizonRadius;
 
@@ -96,6 +98,8 @@ Planet::~Planet() {
 void Planet::render(double partialTicks, double dt) {
 	uint64 a = Time::now();
 
+	Planet::scaleFactor = Planet::prevScaleFactor * (1.0 - partialTicks) + Planet::currScaleFactor *  partialTicks;
+	
 	dvec3 cameraPosition = SCENE_GRAPH.getCamera()->getPosition();
 	this->localCameraPosition = this->worldToLocalPoint(cameraPosition);
 	this->closestCameraFace = this->getClosestFaceLocal(this->localCameraPosition);
@@ -110,7 +114,7 @@ void Planet::render(double partialTicks, double dt) {
 	this->terrainRenderer->render(this, Z_NEG, this->faces[Z_NEG], partialTicks, dt);
 	this->terrainRenderer->render(this, Z_POS, this->faces[Z_POS], partialTicks, dt);
 
-	//SCREEN_RENDERER.getAtmosphereRenderer()->addAtmosphere(this->atmosphere);
+	SCREEN_RENDERER.getAtmosphereRenderer()->addAtmosphere(this->atmosphere);
 
 	this->tileSupplier->update();
 
@@ -139,7 +143,8 @@ void Planet::update(double dt) {
 	double base = 3.0F;
 	double logDist = glm::log(glm::max(altitude, 0.000001)) / glm::log(base);
 
-	Planet::scaleFactor = glm::clamp(glm::pow(base, base - logDist), Planet::minScaleFactor, Planet::maxScaleFactor);
+	Planet::prevScaleFactor = currScaleFactor;
+	Planet::currScaleFactor = glm::clamp(glm::pow(base, base - logDist), Planet::minScaleFactor, Planet::maxScaleFactor);
 	uint64 b = Time::now();
 	//logInfo("Took %f ms to update terrain", (b - a) / 1000000.0);
 

@@ -702,7 +702,7 @@ double TerrainQuad::getElevation(dvec2 position) {
 }
 
 int32 TerrainQuad::getDepth() const {
-	return this->depth;
+		return this->depth;
 }
 
 bool TerrainQuad::isOccluded() const {

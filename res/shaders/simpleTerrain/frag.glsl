@@ -71,7 +71,9 @@ void main(void) {
     vec3 worldNormal = normalize(texture(heightSampler, vec3(fs_texturePosition, fs_textureIndex)).xyz);
 
     float h = texture(heightSampler, vec3(fs_texturePosition, fs_textureIndex)).w;
-    vec3 colour = (h >= -1.0 && h <= 1.0) ? (h > 0.0 ? vec3(h) : vec3(0.5, 0.6, 1.0) * (1.0 - abs(h))) : vec3(1.0, 0.3, 0.3);
+    // vec3 colour = (h >= -1.0 && h <= 1.0) ? (h > 0.0 ? vec3(pow(h, 3.0)) : vec3(0.5, 0.6, 1.0) * (1.0 - abs(h))) : vec3(1.0, 0.3, 0.3);
+
+    vec3 colour = h >= 0.0 ? vec3(1.0) : vec3(0.5);
 
     //vec3 colour = fs_debug;
 

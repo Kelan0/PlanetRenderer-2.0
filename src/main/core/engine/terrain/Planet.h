@@ -56,6 +56,8 @@ public:
 	static double minScaleFactor;
 	static double maxScaleFactor;
 	static double scaleFactor;
+	static double currScaleFactor;
+	static double prevScaleFactor;
 
 	Planet(dvec3 center, double radius, double splitThreshold, int32 maxSplitDepth);
 	~Planet();

@@ -83,7 +83,8 @@ vec4 renderAtmosphere(vec3 localTerrainPosition) {
 
 	float worldDist = length(localTerrainPosition - localCameraPosition);
 
-	bool insideAtmosphere = dot(rayOrig, rayOrig) < outerRadius * outerRadius;
+	bool aboveAtmosphere = dot(rayOrig, rayOrig) > outerRadius * outerRadius;
+	bool belowAtmosphere = dot(rayOrig, rayOrig) < innerRadius * innerRadius;
 
 	float viewrayNear = 0.0;
 	float viewrayFar = 0.0;
@@ -92,7 +93,7 @@ vec4 renderAtmosphere(vec3 localTerrainPosition) {
 	//	return vec4(0.0);
 	//}
 
-	if (!getSphereIntersection(rayOrig, rayDir, outerRadius, viewrayNear, viewrayFar) || viewrayFar <= 0.0 || (!insideAtmosphere && abs(viewrayNear) > viewrayFar)) {
+	if (!getSphereIntersection(rayOrig, rayDir, outerRadius, viewrayNear, viewrayFar) || viewrayFar <= 0.0 || (aboveAtmosphere && abs(viewrayNear) > viewrayFar)) {
 		return vec4(0.0);
 	}
 
@@ -100,20 +101,13 @@ vec4 renderAtmosphere(vec3 localTerrainPosition) {
 		viewrayFar = worldDist;
 	}
 	
-
-	//float innerNear = 0.0;
-	//float innerFar = 0.0;
-	//if (getSphereIntersection(rayOrig, rayDir, innerRadius, innerNear, innerFar) && innerNear > 0.0) {
-	//	viewrayFar = innerNear;
-	//}
-
-	if (insideAtmosphere) {
+	if (!aboveAtmosphere) {
 		viewrayNear = 0.0;
 	}
 	
 	const float viewraySegmentLength = (viewrayFar - viewrayNear) / float(viewraySampleCount);
 
-	const float g = 0.99;
+	const float g = 0.76;
 	const float mu = dot(rayDir, sunDirection);
 	float rayleighPhase = 3.0 / (16.0 * PI) * (1.0 + mu * mu);
 	float miePhase = 3.0 / (8.0 * PI) * ((1.0 - g * g) * (1.0 + mu * mu)) / ((2.0 + g * g) * pow(1.0 + g * g - 2.0 * g * mu, 1.5));

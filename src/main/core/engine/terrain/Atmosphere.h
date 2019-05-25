@@ -22,7 +22,7 @@ private:
 	fvec3 rayleighWavelength; // The peak scattered wavelengths, for red green and blue, for the rayleigh scattering. Generally more blue gets scattered, for earthlike planets.
 	fvec3 mieWavelength; // The peak scattered wavelengths, for red green and blue, for mie scattering. Generally r g and b scatter the same amount.
 public:
-	Atmosphere(Planet* planet, float atmosphereHeight = 150.0, float rayleighHeight = 8.0, float mieHeight = 1.2, fvec3 rayleighWavelength = fvec3(3.8e-6f, 13.5e-6f, 33.1e-6f), fvec3 mieWavelength = fvec3(21e-6f));
+	Atmosphere(Planet* planet, float atmosphereHeight = 100.0, float rayleighHeight = 8.0, float mieHeight = 1.2, fvec3 rayleighWavelength = fvec3(3.8e-6f, 13.5e-6f, 33.1e-6f), fvec3 mieWavelength = fvec3(21e-6f));
 
 	~Atmosphere();
 
