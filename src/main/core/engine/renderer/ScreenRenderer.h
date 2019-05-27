@@ -28,7 +28,7 @@ private:
 	uint32 glowTexture; // red, green, blue
 	uint32 normalTexture; // x, y, z
 	uint32 positionTexture; // x, y, z
-	uint32 specularEmissionTexture; // specular, emission
+	uint32 specularEmissionTexture; // specularPower, specularBrightness, emission
 	uint32 depthTexture; // depth32
 
 	uint32 screenTexture;

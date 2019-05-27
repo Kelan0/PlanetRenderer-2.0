@@ -12,10 +12,10 @@ struct FragmentOutput;
 
 #define DEFAULT_FRAGMENT_OUTPUTS FragmentOutput({	\
 	FragmentDataLocation("outDiffuse", 0),			\
-	FragmentDataLocation("outGlow", 1),				\
-	FragmentDataLocation("outNormal", 2),			\
-	FragmentDataLocation("outPosition", 3),			\
-	FragmentDataLocation("outSpecularEmission", 4),	\
+	FragmentDataLocation("outNormal", 1),			\
+	FragmentDataLocation("outPosition", 2),			\
+	FragmentDataLocation("outSpecularEmission", 3),	\
+	FragmentDataLocation("outGlow", 4),				\
 })
 
 struct FragmentDataLocation {

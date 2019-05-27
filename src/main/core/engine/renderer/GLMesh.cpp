@@ -1,4 +1,5 @@
 #include "GLMesh.h"
+#include "core/application/Application.h"
 #include <GL/glew.h>
 
 
@@ -56,25 +57,27 @@ void InstanceBuffer::enableAttributes(bool enabled) {
 
 
 GLMesh::GLMesh(MeshData* meshData, VertexLayout attributes) :
-	attributes(attributes), vertexCount(0), indexCount(0) {
+	attributes(attributes), vertexCount(0), indexCount(0), allocatedVertexBufferSize(1), allocatedIndexBufferSize(1) {
 
 	glGenVertexArrays(1, &this->vertexArray);
 	glBindVertexArray(this->vertexArray);
 
 	glGenBuffers(1, &this->vertexBuffer);
+	glGenBuffers(1, &this->indexBuffer);
+
 	glBindBuffer(GL_ARRAY_BUFFER, this->vertexBuffer);
 	bindVertexAttribLayout(this->attributes);
-	glBufferData(GL_ARRAY_BUFFER, meshData->getVertexBufferSize(), NULL, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	glGenBuffers(1, &this->indexBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->indexBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, meshData->getIndexBufferSize(), NULL, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
+	if (meshData != NULL) {
+		this->reserveBuffers(meshData->getVertexBufferSize(), meshData->getIndexBufferSize());
+		this->uploadMeshData(meshData);
+	} else {
+		this->reserveBuffers(1, 1);
+	}
+	
 	glBindVertexArray(0);
 
-	this->uploadMeshData(meshData);
 	this->setPrimitive(GL_TRIANGLES);
 }
 
@@ -85,17 +88,41 @@ GLMesh::~GLMesh() {
 }
 
 void GLMesh::uploadMeshData(MeshData* meshData) {
+
 	this->vertexCount = meshData->getVertexCount();
 	this->indexCount = meshData->getIndexCount();
+
+	if (meshData->getVertexBufferSize() > this->allocatedVertexBufferSize || meshData->getIndexBufferSize() > this->allocatedIndexBufferSize) {
+		this->reserveBuffers(meshData->getVertexBufferSize(), meshData->getIndexBufferSize());
+	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->vertexBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->indexBuffer);
 
-	glBufferData(GL_ARRAY_BUFFER, meshData->getVertexBufferSize(), meshData->getVertexBufferData(), GL_DYNAMIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, meshData->getIndexBufferSize(), meshData->getIndexBufferData(), GL_DYNAMIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, meshData->getVertexBufferSize(), meshData->getVertexBufferData());
+	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, meshData->getIndexBufferSize(), meshData->getIndexBufferData());
+
+	//glBufferData(GL_ARRAY_BUFFER, meshData->getVertexBufferSize(), meshData->getVertexBufferData(), GL_DYNAMIC_DRAW);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, meshData->getIndexBufferSize(), meshData->getIndexBufferData(), GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void GLMesh::reserveBuffers(int32 vertexBufferSize, int32 indexBufferSize) {
+
+	logInfo("Reserving %d vertex bytes and %d index bytes", vertexBufferSize, indexBufferSize);
+	this->allocatedVertexBufferSize = vertexBufferSize;
+	this->allocatedIndexBufferSize = indexBufferSize;
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->vertexBuffer);
+	glBufferData(GL_ARRAY_BUFFER, this->allocatedVertexBufferSize, NULL, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->indexBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->allocatedIndexBufferSize, NULL, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 }
 
 void GLMesh::draw(int32 instances, int32 offset, int32 count, InstanceBuffer* instanceBuffer) {

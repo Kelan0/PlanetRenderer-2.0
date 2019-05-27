@@ -21,6 +21,7 @@ uniform sampler2DArray heightSampler;
 uniform int textureSize;
 uniform int texturePadding;
 
+uniform float seaLevel;
 uniform float elevationScale;
 uniform float planetRadius;
 uniform float scaleFactor;
@@ -100,7 +101,7 @@ void main(void) {
         heightmap = texture(heightSampler, vec3(texturePosition, vs_textureIndex));
     // }
     
-    float height = heightmap.w * elevationScale * scaleFactor; // height is causing cracking
+    float height = seaLevel * elevationScale * scaleFactor;
 
     vec4 uvUV = vec4(vs_vertexPosition.xy, vec2(1.0) - vs_vertexPosition.xy);
     vec4 interp = uvUV.xzzx * uvUV.yyww;

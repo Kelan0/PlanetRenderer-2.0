@@ -111,6 +111,12 @@
     <ClCompile Include="src\main\core\engine\renderer\postprocess\AtmosphereRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\main\core\engine\renderer\DebugRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main\core\engine\terrain\MapGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main\core\application\Application.h">
@@ -213,6 +219,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\main\core\engine\renderer\postprocess\AtmosphereRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\core\engine\renderer\DebugRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main\core\engine\terrain\MapGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

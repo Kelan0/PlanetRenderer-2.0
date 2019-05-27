@@ -81,7 +81,7 @@ vec4 renderAtmosphere(vec3 localTerrainPosition) {
 	vec3 rayOrig = localCameraPosition;
 	vec3 rayDir = getRayDirection();
 
-	float worldDist = length(localTerrainPosition - localCameraPosition);
+	float worldDist = length(localTerrainPosition);
 
 	bool aboveAtmosphere = dot(rayOrig, rayOrig) > outerRadius * outerRadius;
 	bool belowAtmosphere = dot(rayOrig, rayOrig) < innerRadius * innerRadius;
@@ -207,7 +207,7 @@ void main(void) {
 
 	ivec2 texelPosition = ivec2(fs_vertexPosition * screenResolution);
 	
-	vec3 localTerrainPosition = (texelFetch(positionTexture, texelPosition, 0).xyz / scaleFactor) * 1000.0 + localCameraPosition;
+	vec3 localTerrainPosition = (texelFetch(positionTexture, texelPosition, 0).xyz / scaleFactor) * 1000.0;// + localCameraPosition;
 
 	vec4 atmosphereColour = renderAtmosphere(localTerrainPosition);
 	vec3 worldColour = texelFetch(screenTexture, texelPosition, 0).rgb;

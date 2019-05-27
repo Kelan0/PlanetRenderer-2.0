@@ -112,28 +112,48 @@ float getNoise(vec3 coord, float frequency, float lacunarity, float gain, float 
 
 float getHeight(vec3 coord) {
 
-    float frequency = 0.4;
-    float lacunarity = 2.0;
-    float gain = 0.5;
-    float amplitude = 1.0;
-    int octaves = 10;
-
-    float height = 0.0;
-
     float largeFeatures = getNoise(coord, 0.4, 2.0, 0.5, 1.0, 12);
     float smallFeatures = getNoise(coord, 5.2, 2.1, 0.33, 0.2, 22);
     float tinyFeatures = getNoise(coord, 18.0, 1.8, 0.6, 0.03, 22);
     float mountainFeatures = getNoise(coord, 4.0, 2.0, 0.5, 0.5, 11);
+    float canyonFeatures = getNoise(coord, 1.0, 2.0, 0.5, 1.0, 12);
     mountainFeatures = pow((1.0 - abs(mountainFeatures)) * 2.0 - 1.0, 6.0);
+    canyonFeatures = clamp(1.0 - pow(abs((1.0 - abs(canyonFeatures)) * 2.0 - 1.0), 4.0), 0.0, 1.0);
+
+    float canyonUpperFlat = 0.29;
+    float canyonLowerFlat = 0.11;
+    canyonFeatures = pow(canyonFeatures, 0.8);
+    if (canyonFeatures > canyonUpperFlat) {
+        canyonFeatures = canyonUpperFlat + (canyonFeatures - canyonUpperFlat) * 0.4;
+    } else if (canyonFeatures < canyonLowerFlat) {
+        canyonFeatures = canyonLowerFlat - abs(canyonFeatures - canyonLowerFlat) * 0.8;
+    } else {
+        canyonFeatures = canyonLowerFlat + pow((canyonFeatures - canyonLowerFlat) / (canyonUpperFlat - canyonLowerFlat), 4.0) * (canyonUpperFlat - canyonLowerFlat);
+    }
 
     float mountainMultiplier = 0.0;
+    float canyonMultiplier = 0.0;
 
     if (largeFeatures > 0.0) {
         mountainMultiplier = fract(max(0.0, pow(largeFeatures + 0.5, 2.0))) * 2.0 - 1.0;
         mountainMultiplier = min(1.0, max(0.0, (mountainMultiplier < 0.0 ? -mountainMultiplier : +mountainMultiplier) * 1.6 - 0.7) * 1.2) * largeFeatures;
     }
+
+    canyonMultiplier = pow(1.0 - abs(clamp(largeFeatures - mountainMultiplier, -1.0, 1.0)), 8.0) * min(abs(largeFeatures) * 10.0, 1.0);
     
-    return largeFeatures + smallFeatures + tinyFeatures + mountainMultiplier * mountainFeatures;
+    if (largeFeatures > 0.0) {
+        if (largeFeatures > 0.2) {
+            largeFeatures = 0.2;// + (largeFeatures - 0.6) * 0.2;
+        }
+    }
+
+    float height = largeFeatures + smallFeatures + tinyFeatures + mountainMultiplier * mountainFeatures + canyonMultiplier * canyonFeatures;
+
+    if (height >= 1.0) {
+        height = 1.0 - (height - 1.0);
+    }
+
+    return clamp(height, -1.0, 1.0);
 }
 
 vec3 getSurfacePosition(float height, vec3 n, vec4 interp) {

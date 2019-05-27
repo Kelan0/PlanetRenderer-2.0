@@ -91,7 +91,7 @@ void ScreenRenderer::render(double partialTicks, double dt) {
 	this->screenShader->setUniform("glowTexture", 1);
 	this->screenShader->setUniform("normalTexture", 2);
 	this->screenShader->setUniform("positionTexture", 3);
-	this->screenShader->setUniform("specularEmission", 4);
+	this->screenShader->setUniform("specularEmissionTexture", 4);
 	this->screenShader->setUniform("depthTexture", 5);
 
 	this->screenShader->setUniform("screenTexture", 6);
@@ -148,7 +148,9 @@ bool ScreenRenderer::setResolution(uvec2 resolution) {
 		}
 
 		this->screenResolution = resolution;
-
+		int maxColorAttachments;
+		glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxColorAttachments);
+		logInfo("Maximum framebuffer attachments: %d", maxColorAttachments);
 
 		glEnable(GL_TEXTURE_2D);
 
@@ -182,9 +184,6 @@ bool ScreenRenderer::setResolution(uvec2 resolution) {
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->albedoTexture);
 		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RGBA32F, this->screenResolution.x, this->screenResolution.y, this->fixedSampleLocations);
 
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->glowTexture);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RGB32F, this->screenResolution.x, this->screenResolution.y, this->fixedSampleLocations);
-
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->normalTexture);
 		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RGB32F, this->screenResolution.x, this->screenResolution.y, this->fixedSampleLocations);
 
@@ -192,7 +191,10 @@ bool ScreenRenderer::setResolution(uvec2 resolution) {
 		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RGB32F, this->screenResolution.x, this->screenResolution.y, this->fixedSampleLocations);
 
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->specularEmissionTexture);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RG32F, this->screenResolution.x, this->screenResolution.y, this->fixedSampleLocations);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RGB32F, this->screenResolution.x, this->screenResolution.y, this->fixedSampleLocations);
+
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->glowTexture);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_RGB32F, this->screenResolution.x, this->screenResolution.y, this->fixedSampleLocations);
 
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, this->depthTexture);
 		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, this->msaaSamples, GL_DEPTH_COMPONENT32F, this->screenResolution.x, this->screenResolution.y, this->fixedSampleLocations);
@@ -200,10 +202,10 @@ bool ScreenRenderer::setResolution(uvec2 resolution) {
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
 
 		this->screenBuffer->createColourTextureAttachment(0, this->albedoTexture, GL_TEXTURE_2D_MULTISAMPLE);
-		this->screenBuffer->createColourTextureAttachment(1, this->glowTexture, GL_TEXTURE_2D_MULTISAMPLE);
-		this->screenBuffer->createColourTextureAttachment(2, this->normalTexture, GL_TEXTURE_2D_MULTISAMPLE);
-		this->screenBuffer->createColourTextureAttachment(3, this->positionTexture, GL_TEXTURE_2D_MULTISAMPLE);
-		this->screenBuffer->createColourTextureAttachment(4, this->specularEmissionTexture, GL_TEXTURE_2D_MULTISAMPLE);
+		this->screenBuffer->createColourTextureAttachment(1, this->normalTexture, GL_TEXTURE_2D_MULTISAMPLE);
+		this->screenBuffer->createColourTextureAttachment(2, this->positionTexture, GL_TEXTURE_2D_MULTISAMPLE);
+		this->screenBuffer->createColourTextureAttachment(3, this->specularEmissionTexture, GL_TEXTURE_2D_MULTISAMPLE);
+		this->screenBuffer->createColourTextureAttachment(4, this->glowTexture, GL_TEXTURE_2D_MULTISAMPLE);
 		this->screenBuffer->createDepthTextureAttachment(this->depthTexture, GL_TEXTURE_2D_MULTISAMPLE);
 		logInfo("Validating screen framebuffer");
 		this->screenBuffer->checkStatus(true);

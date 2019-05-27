@@ -7,6 +7,7 @@
 class TileSupplier;
 class TerrainRenderer;
 class Atmosphere;
+class MapGenerator;
 class ShaderProgram;
 class TerrainQuad;
 class TileData;
@@ -28,6 +29,7 @@ private:
 	TileSupplier* tileSupplier;
 	TerrainRenderer* terrainRenderer;
 	Atmosphere* atmosphere;
+	MapGenerator* mapGenerator;
 
 	TerrainQuad* faces[6]; // cube faces.
 	mat3 faceOrientations[6]; // face orientations.

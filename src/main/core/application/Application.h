@@ -9,6 +9,7 @@ class EventHandler;
 class ResourceHandler;
 class InputHandler;
 class SceneGraph;
+class DebugRenderer;
 class ScreenRenderer;
 class Logger;
 
@@ -21,6 +22,7 @@ typedef void* SDL_GLContext;
 #define RESOURCE_HANDLER Application::getResourceHandler()
 #define INPUT_HANDLER Application::getInputHandler()
 #define SCENE_GRAPH Application::getSceneGraph()
+#define DEBUG_RENDERER Application::getDebugRenderer()
 #define SCREEN_RENDERER Application::getScreenRenderer()
 #define LOGGER Application::getLogger()
 
@@ -97,6 +99,8 @@ namespace Application
 	InputHandler& getInputHandler();
 
 	SceneGraph& getSceneGraph();
+
+	DebugRenderer& getDebugRenderer();
 
 	ScreenRenderer& getScreenRenderer();
 

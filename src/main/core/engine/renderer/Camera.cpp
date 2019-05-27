@@ -114,6 +114,7 @@ void Camera::applyUniforms(ShaderProgram* shader) const {
 		shader->setUniform("invViewProjectionMatrix", fmat4(this->invViewProjectionMatrix));
 		shader->setUniform("projectionMatrix", fmat4(this->projectionMatrix));
 		shader->setUniform("invProjectionMatrix", fmat4(this->invProjectionMatrix));
+		shader->setUniform("cameraPosition", fvec3(this->position));
 		shader->setUniform("viewMatrix", fmat4(this->viewMatrix));
 		shader->setUniform("invViewMatrix", fmat4(this->invViewMatrix));
 		shader->setUniform("depthCoefficient", float(2.0 / log2(fp + 1.0)));

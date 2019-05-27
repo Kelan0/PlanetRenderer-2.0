@@ -4,6 +4,8 @@ in vec3 vs_vertexPosition;
 in vec3 vs_vertexNormal;
 in vec2 vs_vertexTexture;
 
+uniform float lineThickness;
+uniform vec3 cameraPosition;
 uniform mat4 modelMatrix;
 uniform mat4 normalMatrix;
 uniform mat4 viewMatrix;
@@ -24,6 +26,8 @@ void main(void) {
     vec4 worldNormal = normalMatrix * vec4(vs_vertexNormal, 0.0);
     vec4 worldPosition = modelMatrix * vec4(vs_vertexPosition, 1.0);
 
+    worldPosition.xyz = (worldPosition.xyz - cameraPosition.xyz) * scaleFactor;
+
     fs_worldPosition = worldPosition.xyz;
     fs_worldNormal = worldNormal.xyz;
     fs_vertexPosition = vs_vertexPosition;
@@ -33,6 +37,7 @@ void main(void) {
     vec4 screenPosition = viewProjectionMatrix * worldPosition;
     fs_flogz = 1.0 + screenPosition.w;
 
+    //gl_LineWidth = lineThickness;
     gl_Position = screenPosition;
     gl_Position.z = (log2(max(1e-6, fs_flogz)) * depthCoefficient - 1.0) * screenPosition.w;
 }

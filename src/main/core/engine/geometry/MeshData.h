@@ -55,9 +55,9 @@ private:
 
 	VertexLayout vertexLayout;
 public:
-	MeshData(std::vector <Vertex> vertices = {}, std::vector<uint32> indices = {}, VertexLayout vertexLayout = DEFAULT_VERTEX_LAYOUT);
+	MeshData(std::vector <Vertex> vertices, std::vector<uint32> indices, VertexLayout vertexLayout = DEFAULT_VERTEX_LAYOUT);
 
-	MeshData(int32 reservedVertices, int32 reservedIndices, VertexLayout vertexLayout = DEFAULT_VERTEX_LAYOUT);
+	MeshData(int32 reservedVertices = 100, int32 reservedIndices = 100, VertexLayout vertexLayout = DEFAULT_VERTEX_LAYOUT);
 
 	~MeshData() {}
 

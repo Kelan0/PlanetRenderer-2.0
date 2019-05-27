@@ -30,9 +30,9 @@ uniform bool overlayDebug;
 uniform bool showDebug;
 
 out vec3 outDiffuse;
-out vec3 outSpecularEmission;
 out vec3 outNormal;
 out vec3 outPosition;
+out vec3 outSpecularEmission;
 out vec3 outGlow;
 
 vec4 getInterp(vec2 pos) {
@@ -62,22 +62,17 @@ vec4 getHeightmap(vec2 offset) {
 
 void main(void) {
     float f = 1.0 / 64.0;
-    //vec3 hm10 = getHeightmap(vec2(1.0, 0.0) * f).xyz;
-    //vec3 hm01 = getHeightmap(vec2(0.0, 1.0) * f).xyz;
-    //vec3 hm00 = getHeightmap(vec2(0.0, 0.0) * f).xyz;
 
-    //vec3 screenNormal = normalize(cross(hm00 - hm10, hm01 - hm00));
+    vec3 worldNormal = normalize((screenToLocal * fs_quadNormals * fs_interp).xyz);
+    //vec3 worldPosition = (screenToLocal * fs_quadCorners * fs_interp).xyz;
 
-    vec3 worldNormal = normalize(texture(heightSampler, vec3(fs_texturePosition, fs_textureIndex)).xyz);
-    // vec3 worldPosition = (screenToLocal * fs_quadCorners * fs_interp).xyz;
+    float depth = pow(min(abs(texture(heightSampler, vec3(fs_texturePosition, fs_textureIndex)).a) * 6.0, 1.0), 1.0);
 
-    float h = texture(heightSampler, vec3(fs_texturePosition, fs_textureIndex)).w;
-    // vec3 colour = (h >= -1.0 && h <= 1.0) ? (h > 0.0 ? vec3(pow(h, 3.0)) : vec3(0.5, 0.6, 1.0) * (1.0 - abs(h))) : vec3(1.0, 0.3, 0.3);
+    vec3 colour = vec3(0.2, 0.3, 0.7) * (1.0 - depth * 0.3);
 
-    vec3 colour = h >= 0.0 ? vec3(1.0) : vec3(0.5);
-
-    //vec3 colour = fs_debug;
-
+    float specularPower = 50.0;
+    float specularBrightness = 22.0;
+    
     if (overlayDebug) {
         vec3 debugColour = vec3(0.0, 1.0, 0.0);
         outDiffuse = mix(colour, debugColour, (fs_debug[2] * fs_debug[2]) * 0.5).rgb;
@@ -87,10 +82,10 @@ void main(void) {
         outDiffuse = colour.rgb;
     }
     
-    
     outPosition = fs_worldPosition.xyz;
     outNormal = worldNormal;
-    outSpecularEmission = vec3(0.0);
+    outSpecularEmission = vec3(specularPower, specularBrightness, 0.0);
+    
 
     //gl_FragDepth = log2(fs_flogz) * depthCoefficient * 0.5;
 }

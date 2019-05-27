@@ -1,5 +1,6 @@
 
 #include "core/application/Application.h"
+#include "core/engine/renderer/DebugRenderer.h"
 #include "core/engine/renderer/ScreenRenderer.h"
 #include "core/engine/scene/SceneGraph.h"
 #include "core/event/EventHandler.h"
@@ -19,6 +20,7 @@ namespace Application {
 	ResourceHandler* resourceHandler = NULL;
 	InputHandler* inputHandler = NULL;
 	SceneGraph* sceneGraph = NULL;
+	DebugRenderer* debugRenderer = NULL;
 	ScreenRenderer* screenRenderer = NULL;
 	Logger* logger = NULL;
 
@@ -38,6 +40,7 @@ namespace Application {
 		resourceHandler = new ResourceHandler(execpath);
 		inputHandler = new InputHandler();
 		sceneGraph = new SceneGraph();
+		debugRenderer = new DebugRenderer();
 		screenRenderer = new ScreenRenderer();
 		logger = new Logger();
 	}
@@ -96,6 +99,7 @@ namespace Application {
 
 		INPUT_HANDLER.init();
 		SCENE_GRAPH.init();
+		DEBUG_RENDERER.init();
 		SCREEN_RENDERER.init();
 
 		return true;
@@ -195,6 +199,13 @@ namespace Application {
 	}
 
 	void Application::cleanup() {
+		//delete eventHandler;
+		//delete resourceHandler;
+		//delete inputHandler;
+		//delete sceneGraph;
+		//delete debugRenderer;
+		//delete screenRenderer;
+		//delete logger;
 
 	}
 
@@ -287,6 +298,10 @@ namespace Application {
 
 	SceneGraph& getSceneGraph() {
 		return *sceneGraph;
+	}
+
+	DebugRenderer& getDebugRenderer() {
+		return *debugRenderer;
 	}
 
 	ScreenRenderer& getScreenRenderer() {

@@ -18,7 +18,7 @@ enum CubeFace;
 	VertexAttribute(0, 2, 0),					       \
 }, [](Vertex v) -> std::vector<float> { return std::vector<float> {float(v.position.x), float(v.position.z)}; })
 
-struct TerrainInfo {
+struct PatchInfo {
 	TerrainQuad* quad;
 	fvec3 debug;
 	int32 textureIndex;
@@ -42,18 +42,21 @@ class TerrainRenderer {
 private:
 	GLMesh* terrainMesh;
 	ShaderProgram* terrainProgram;
+	ShaderProgram* waterProgram;
 	InstanceBuffer* terrainInstanceBuffer;
 
 	std::thread threads[4];
 	std::deque<TerrainRenderTask> inputBuffers[4];
-	std::vector<TerrainInfo> outputBuffer[4];
+	std::vector<PatchInfo> outputBuffer[4];
 	std::condition_variable threadInput;
 	std::condition_variable threadOutput;
 	std::mutex mut;
 
 	int terrainResolution;
 
-	void doRender(TerrainQuad* terrainQuad, int depth, double r, dvec2 cameraFacePosition, dmat4 localToScreen, dmat4 faceTransformation, std::vector<TerrainInfo>& instances);
+	PatchInfo createPatch(TerrainQuad* terrainQuad, dmat4 localToScreen);
+
+	void doRender(TerrainQuad* terrainQuad, int depth, double r, dvec2 cameraFacePosition, dmat4 localToScreen, dmat4 faceTransformation, std::vector<PatchInfo>& terrainInstances, std::vector<PatchInfo>& waterInstances);
 
 	void threadProc(int32 id);
 public:

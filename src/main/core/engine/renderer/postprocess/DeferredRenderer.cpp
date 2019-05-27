@@ -64,7 +64,7 @@ bool DeferredRenderer::render(double partialTicks, double dt) {
 	this->deferredFrameBuffer->bind(this->screenResolution.x, this->screenResolution.y);
 	this->deferredShader->useProgram(true);
 	SCENE_GRAPH.applyUniforms(this->deferredShader);
-	
+
 	this->deferredShader->setUniform("screenResolution", fvec2(this->screenResolution));
 	this->deferredShader->setUniform("msaaSamples", int32(this->screenRenderer->getMSAASamples()));
 	
@@ -72,7 +72,7 @@ bool DeferredRenderer::render(double partialTicks, double dt) {
 	this->deferredShader->setUniform("glowTexture", 1);
 	this->deferredShader->setUniform("normalTexture", 2);
 	this->deferredShader->setUniform("positionTexture", 3);
-	this->deferredShader->setUniform("specularEmission", 4);
+	this->deferredShader->setUniform("specularEmissionTexture", 4);
 	this->deferredShader->setUniform("depthTexture", 5);
 	
 	glEnable(GL_TEXTURE_2D);

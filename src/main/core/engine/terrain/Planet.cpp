@@ -4,10 +4,12 @@
 #include "core/engine/renderer/Camera.h"
 #include "core/engine/renderer/ShaderProgram.h"
 #include "core/engine/renderer/ScreenRenderer.h"
+#include "core/engine/renderer/DebugRenderer.h"
 #include "core/engine/renderer/postprocess/AtmosphereRenderer.h"
 #include "core/engine/terrain/TerrainQuad.h"
 #include "core/engine/terrain/TerrainRenderer.h"
 #include "core/engine/terrain/Atmosphere.h"
+#include "core/engine/terrain/MapGenerator.h"
 #include "core/engine/terrain/TileSupplier.h"
 #include "core/engine/scene/bounding/BoundingVolume.h"
 #include "core/util/InputHandler.h"
@@ -27,6 +29,7 @@ Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSpli
 	this->tileSupplier = new TileSupplier(this);
 	this->terrainRenderer = new TerrainRenderer(8);
 	this->atmosphere = new Atmosphere(this);
+	this->mapGenerator = new MapGenerator(this);
 
 	this->faceOrientations[X_NEG][0] = fvec3(0, 0, +1);
 	this->faceOrientations[X_NEG][1] = fvec3(-1, 0, 0);
@@ -77,7 +80,7 @@ Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSpli
 	this->tileSupplierDebugState = 0;
 
 	this->elevationUnderCamera = 0.0;
-	this->elevationScale = 40.0;
+	this->elevationScale = 24.0;
 	this->horizonRadius = this->radius - this->elevationScale;
 	this->invHorizonRadius = 1.0 / this->horizonRadius;
 
@@ -116,7 +119,8 @@ void Planet::render(SceneGraph* sceneGraph, double partialTicks, double dt) {
 	this->terrainRenderer->render(this, Z_POS, this->faces[Z_POS], partialTicks, dt);
 
 	SCREEN_RENDERER.getAtmosphereRenderer()->addAtmosphere(this->atmosphere);
-
+	
+	this->mapGenerator->render(partialTicks, dt);
 	this->tileSupplier->update();
 
 	uint64 b = Time::now();
@@ -283,14 +287,15 @@ IntersectionType Planet::getVisibility(CubeFace face, BoundingVolume* bound, boo
 					}
 
 					if (this->renderDebugQuadBounds) {
-						Vertex v[8] = { Vertex(v0), Vertex(v1), Vertex(v2), Vertex(v3), Vertex(v4), Vertex(v5), Vertex(v6), Vertex(v7) };
-						int32 i[24] = {
+						std::vector<Vertex> v = { Vertex(v0), Vertex(v1), Vertex(v2), Vertex(v3), Vertex(v4), Vertex(v5), Vertex(v6), Vertex(v7) };
+						std::vector<int32> i = {
 							0, 1, 1, 2, 2, 3, 3, 0,
 							4, 5, 5, 6, 6, 7, 7, 4,
 							0, 4, 1, 5, 2, 6, 3, 7
 						};
 
-						SCENE_GRAPH.renderDebug(GL_LINES, 24, v, i);
+
+						DEBUG_RENDERER.render(v, i);
 					}
 				}
 

@@ -59,7 +59,6 @@ private:
 	bool changed; // True if this quad changed in the previous frame, and needs to be re-rendered
 	bool neighbourChanged;
 
-
 	void setNeighbours(TerrainQuad* left, TerrainQuad* top, TerrainQuad* right, TerrainQuad* bottom);
 
 	TerrainQuad(Planet* planet, CubeFace face, TerrainQuad* parent, QuadIndex quadIndex, dvec2 facePosition, uvec2 treePosition, float minHeight, float maxHeight, bool occluded);
@@ -82,6 +81,8 @@ public:
 	void deleteNeighbours();
 
 	void notifyNeighbours();
+
+	void onHeightRangeChanged();
 
 	bool isLeaf() const;
 

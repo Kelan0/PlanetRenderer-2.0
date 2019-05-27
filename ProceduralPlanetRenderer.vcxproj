@@ -210,6 +210,8 @@ xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuratio
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\main\core\engine\terrain\MapGenerator.cpp" />
+    <ClCompile Include="src\main\core\engine\renderer\DebugRenderer.cpp" />
     <ClCompile Include="src\main\core\engine\renderer\postprocess\AtmosphereRenderer.cpp" />
     <ClCompile Include="src\main\core\engine\renderer\postprocess\HistogramRenderer.cpp" />
     <ClCompile Include="src\main\core\engine\renderer\postprocess\DeferredRenderer.cpp" />
@@ -244,6 +246,8 @@ xcopy C:\Library\bin\$(Platform)\*.dll  $(SolutionDir)$(Platform)\$(Configuratio
     <ClCompile Include="src\main\core\engine\terrain\TileSupplier.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\main\core\engine\terrain\MapGenerator.h" />
+    <ClInclude Include="src\main\core\engine\renderer\DebugRenderer.h" />
     <ClInclude Include="src\main\core\engine\renderer\postprocess\AtmosphereRenderer.h" />
     <ClInclude Include="src\main\core\engine\renderer\postprocess\HistogramRenderer.h" />
     <ClInclude Include="src\main\core\engine\renderer\postprocess\DeferredRenderer.h" />

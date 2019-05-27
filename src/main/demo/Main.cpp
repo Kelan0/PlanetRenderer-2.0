@@ -4,6 +4,7 @@
 #include "core/engine/geometry/Displacement.h"
 #include "core/engine/geometry/MeshData.h"
 #include "core/engine/renderer/ShaderProgram.h"
+#include "core/engine/renderer/DebugRenderer.h"
 #include "core/engine/renderer/GLMesh.h"
 #include "core/engine/renderer/Camera.h"
 #include "core/engine/scene/Transformation.h"
@@ -219,14 +220,17 @@ void render(double partialTicks, double dt) {
 
 	//planet->render(&SCENE_GRAPH, partialTicks, dt);
 
-	Vertex vt[2] = {
+	std::vector<Vertex> vt = {
 		Vertex(dvec3(0.0, 10000.0, 0.0)),
 		Vertex(dvec3(0.0, -10000.0, 0.0)),
 	};
 
-	int32 ix[2] = {0, 1};
+	std::vector<int32> ix = {0, 1};
 
-	SCENE_GRAPH.renderDebug(GL_LINES, 2, vt, ix);
+	DEBUG_RENDERER.begin(GL_LINES);
+	DEBUG_RENDERER.setLightingEnabled(false);
+	DEBUG_RENDERER.render(vt, ix);
+	DEBUG_RENDERER.finish();
 }
 
 void update(double dt) {

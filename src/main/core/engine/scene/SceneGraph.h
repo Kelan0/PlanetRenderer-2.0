@@ -8,6 +8,7 @@
 class ShaderProgram;
 class Camera;
 struct Vertex;
+struct GLMesh;
 
 typedef enum WireframeMode {
 	SHOW_FACES = 0,
@@ -24,11 +25,8 @@ private:
 
 	GameObject* root;
 	Camera* camera;
-
+	
 	WireframeMode wireframeMode;
-
-	ShaderProgram* debugShader;
-
 public:
 	SceneGraph();
 	~SceneGraph();
@@ -39,7 +37,7 @@ public:
 
 	void update(double dt);
 
-	void renderDebug(uint32 mode, uint32 count, Vertex vertices[], int indices[], dmat4 modelMatrix = dmat4(1.0));
+	//void renderDebug(uint32 mode, uint32 count, Vertex vertices[], int indices[], dmat4 modelMatrix = dmat4(1.0));
 
 	void pushTransformationState(Transformation transformation);
 

@@ -92,15 +92,18 @@ void TerrainQuad::init() {
 		this->faceBounds->setMinMax(dvec3(xmin, 0.0, ymin), dvec3(xmax, 0.0, ymax));
 	}
 
-	double d = this->size * 0.375;
-	const dvec3 ltn = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmin, this->planet->elevationScale * this->minHeight - d, ymin));
-	const dvec3 rtn = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmax, this->planet->elevationScale * this->minHeight - d, ymin));
-	const dvec3 rbn = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmax, this->planet->elevationScale * this->minHeight - d, ymax));
-	const dvec3 lbn = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmin, this->planet->elevationScale * this->minHeight - d, ymax));
-	const dvec3 ltf = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmin, this->planet->elevationScale * this->maxHeight + d, ymin));
-	const dvec3 rtf = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmax, this->planet->elevationScale * this->maxHeight + d, ymin));
-	const dvec3 rbf = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmax, this->planet->elevationScale * this->maxHeight + d, ymax));
-	const dvec3 lbf = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmin, this->planet->elevationScale * this->maxHeight + d, ymax));
+	double hmin = this->minHeight;
+	double hmax = glm::max(0.0, this->maxHeight);
+
+	double d = this->size * 0.325;
+	const dvec3 ltn = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmin, this->planet->elevationScale * hmin, ymin));
+	const dvec3 rtn = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmax, this->planet->elevationScale * hmin, ymin));
+	const dvec3 rbn = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmax, this->planet->elevationScale * hmin, ymax));
+	const dvec3 lbn = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmin, this->planet->elevationScale * hmin, ymax));
+	const dvec3 ltf = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmin, this->planet->elevationScale * hmax + d, ymin));
+	const dvec3 rtf = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmax, this->planet->elevationScale * hmax + d, ymin));
+	const dvec3 rbf = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmax, this->planet->elevationScale * hmax + d, ymax));
+	const dvec3 lbf = this->planet->cubeFaceToLocalPoint(this->face, dvec3(xmin, this->planet->elevationScale * hmax + d, ymax));
 
 	if (this->deformedBounds == NULL) {
 		this->deformedBounds = new Frustum(ltn, rtn, rbn, lbn, ltf, rtf, rbf, lbf);
@@ -136,7 +139,12 @@ void TerrainQuad::init() {
 void TerrainQuad::update(double dt) {
 
 	dvec3 cameraPosition = this->planet->getLocalCameraPosition();
-	double distanceSq = glm::distance2(this->localPosition, cameraPosition);
+	double distanceSq = INFINITY;
+
+	for (int i = 0; i < 8; i++) {
+		distanceSq = glm::min(distanceSq, glm::distance2(this->deformedBounds->getCorner((FrustumCorner)i), cameraPosition));
+	}
+
 	double threshold = this->size * 3.0;
 
 	if (this->face == this->planet->closestCameraFace) {
@@ -497,6 +505,9 @@ void TerrainQuad::notifyNeighbours() {
 			this->neighbours[BOTTOM]->updateNeighbours();
 		}
 	}
+}
+
+void TerrainQuad::onHeightRangeChanged() {
 }
 
 bool TerrainQuad::isLeaf() const {

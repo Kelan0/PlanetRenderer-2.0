@@ -1,5 +1,6 @@
 #include "BoundingVolume.h"
 #include "core/application/Application.h"
+#include "core/engine/renderer/DebugRenderer.h"
 #include "core/engine/geometry/MeshData.h"
 #include "core/engine/scene/SceneGraph.h"
 
@@ -219,7 +220,7 @@ void Frustum::renderDebug(bool lines) const {
 	dvec3 v7 = this->getCorner(FRUSTUM_LEFT_BOTTOM_FAR);
 
 	if (lines) {
-		Vertex frustumCorners[8] = {
+		std::vector<Vertex> frustumCorners = {
 			Vertex(v0, fvec3(0.0, 1.0, 0.0)),
 			Vertex(v1, fvec3(0.0, 1.0, 0.0)),
 			Vertex(v2, fvec3(0.0, 1.0, 0.0)),
@@ -230,7 +231,7 @@ void Frustum::renderDebug(bool lines) const {
 			Vertex(v7, fvec3(0.0, 1.0, 0.0)),
 		};
 
-		int lineIndices[48] = {
+		std::vector<int32> lineIndices = {
 			0, 3, 3, 7, 7, 4, 4, 0, // -x
 			1, 2, 2, 6, 6, 5, 5, 1, // +x
 			0, 1, 1, 5, 5, 4, 4, 0, // -y
@@ -238,8 +239,11 @@ void Frustum::renderDebug(bool lines) const {
 			0, 1, 1, 2, 2, 3, 3, 0, // -z
 			4, 5, 5, 6, 6, 7, 7, 4, // +z
 		};
-
-		SCENE_GRAPH.renderDebug(1, 36, frustumCorners, lineIndices); // 1 = GL_LINES
+		
+		DEBUG_RENDERER.begin(LINES);
+		DEBUG_RENDERER.setLightingEnabled(false);
+		DEBUG_RENDERER.render(frustumCorners, lineIndices);
+		DEBUG_RENDERER.finish();
 	} else {
 		fvec3 n0 = fvec3(this->planes[FRUSTUM_LEFT]);
 		fvec3 n1 = fvec3(this->planes[FRUSTUM_RIGHT]);
@@ -248,7 +252,7 @@ void Frustum::renderDebug(bool lines) const {
 		fvec3 n4 = fvec3(this->planes[FRUSTUM_NEAR]);
 		fvec3 n5 = fvec3(this->planes[FRUSTUM_FAR]);
 
-		Vertex frustumCorners[24] = {
+		std::vector<Vertex> frustumCorners = {
 			Vertex(v0, fvec3(n0)), Vertex(v3, fvec3(n0)), Vertex(v7, fvec3(n0)), Vertex(v4, fvec3(n0)),
 			Vertex(v1, fvec3(n1)), Vertex(v2, fvec3(n1)), Vertex(v6, fvec3(n1)), Vertex(v5, fvec3(n1)),
 			Vertex(v0, fvec3(n2)), Vertex(v1, fvec3(n2)), Vertex(v5, fvec3(n2)), Vertex(v4, fvec3(n2)),
@@ -257,7 +261,7 @@ void Frustum::renderDebug(bool lines) const {
 			Vertex(v4, fvec3(n5)), Vertex(v5, fvec3(n5)), Vertex(v6, fvec3(n5)), Vertex(v7, fvec3(n5)),
 		};
 
-		int triIndices[36] = {
+		std::vector<int32> triIndices = {
 			0 + 0 * 4, 1 + 0 * 4, 2 + 0 * 4, 0 + 0 * 4, 2 + 0 * 4, 3 + 0 * 4, // -x
 			0 + 1 * 4, 1 + 1 * 4, 2 + 1 * 4, 0 + 1 * 4, 2 + 1 * 4, 3 + 1 * 4, // +x
 			0 + 2 * 4, 1 + 2 * 4, 2 + 2 * 4, 0 + 2 * 4, 2 + 2 * 4, 3 + 2 * 4, // -y
@@ -266,7 +270,10 @@ void Frustum::renderDebug(bool lines) const {
 			0 + 5 * 4, 1 + 5 * 4, 2 + 5 * 4, 0 + 5 * 4, 2 + 5 * 4, 3 + 5 * 4, // +z
 		};
 
-		SCENE_GRAPH.renderDebug(4, 36, frustumCorners, triIndices); // 4 = GL_TRIANGLES
+		DEBUG_RENDERER.begin(TRIANGLES);
+		DEBUG_RENDERER.setLightingEnabled(true);
+		DEBUG_RENDERER.render(frustumCorners, triIndices);
+		DEBUG_RENDERER.finish();
 	}
 }
 

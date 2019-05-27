@@ -48,14 +48,18 @@ private:
 
 	VertexLayout attributes;
 
-	int vertexCount;
-	int indexCount;
+	int32 vertexCount;
+	int32 indexCount;
+	int32 allocatedVertexBufferSize;
+	int32 allocatedIndexBufferSize;
 public:
 	GLMesh(MeshData* meshData = NULL, VertexLayout attributes = DEFAULT_VERTEX_LAYOUT);
 
 	~GLMesh();
 
 	void uploadMeshData(MeshData* meshData);
+
+	void reserveBuffers(int32 vertexBufferSize, int32 indexBufferSize);
 
 	void draw(int32 instances = 1, int32 offset = 0, int32 count = 0, InstanceBuffer* instanceBuffer = NULL);
 

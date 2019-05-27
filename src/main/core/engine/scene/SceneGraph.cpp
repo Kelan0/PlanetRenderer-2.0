@@ -27,16 +27,6 @@ void SceneGraph::init() {
 		// Assuming camera is never null...
 		camera->setAspectRatio(Application::getWindowAspectRatio());
 	});
-
-	this->debugShader = new ShaderProgram();
-	this->debugShader->addShader(GL_VERTEX_SHADER, "default/vert.glsl");
-	this->debugShader->addShader(GL_FRAGMENT_SHADER, "default/frag.glsl");
-	this->debugShader->addAttribute(0, "position");
-	this->debugShader->addAttribute(1, "normal");
-	this->debugShader->addAttribute(2, "texture");
-	this->debugShader->addAttribute(3, "colour");
-	this->debugShader->completeProgram();
-
 }
 
 void SceneGraph::render(double partialTicks, double dt) {
@@ -59,40 +49,40 @@ void SceneGraph::update(double dt) {
 	this->root->update(this, dt);
 }
 
-void SceneGraph::renderDebug(uint32 mode, uint32 count, Vertex vertices[], int indices[], dmat4 matrix) {
-	bool lightingEnabled = this->isLightingEnabled();
-	if (mode == GL_LINES) {
-		this->setLightingEnabled(false);
-		this->setLightingEnabled(lightingEnabled);
-	}
-
-	this->debugShader->useProgram(true);
-	this->applyUniforms(this->debugShader);
-
-	dvec3 cp = this->camera->getPosition(true);
-
-	this->debugShader->setUniform("modelMatrix", dmat4(1.0));
-
-	glBegin(mode);
-
-	for (int i = 0; i < count; i++) {
-		Vertex v = matrix * vertices[indices[i]];
-		glVertexAttrib2f(2, v.texture.x, v.texture.y);
-		glVertexAttrib3f(1, v.normal.x, v.normal.y, v.normal.z);
-		glVertexAttrib3f(0, 
-			(v.position.x - cp.x) * Planet::scaleFactor,
-			(v.position.y - cp.y) * Planet::scaleFactor,
-			(v.position.z - cp.z) * Planet::scaleFactor
-		);
-	}
-
-	glEnd();
-
-	this->debugShader->useProgram(false);
-	if (mode == GL_LINES) {
-		this->setLightingEnabled(lightingEnabled);
-	}
-}
+//void SceneGraph::renderDebug(uint32 mode, uint32 count, Vertex vertices[], int indices[], dmat4 matrix) {
+//	bool lightingEnabled = this->isLightingEnabled();
+//	if (mode == GL_LINES) {
+//		this->setLightingEnabled(false);
+//		this->setLightingEnabled(lightingEnabled);
+//	}
+//
+//	this->debugShader->useProgram(true);
+//	this->applyUniforms(this->debugShader);
+//
+//	dvec3 cp = this->camera->getPosition(true);
+//
+//	this->debugShader->setUniform("modelMatrix", dmat4(1.0));
+//
+//	glBegin(mode);
+//
+//	for (int i = 0; i < count; i++) {
+//		Vertex v = matrix * vertices[indices[i]];
+//		glVertexAttrib2f(2, v.texture.x, v.texture.y);
+//		glVertexAttrib3f(1, v.normal.x, v.normal.y, v.normal.z);
+//		glVertexAttrib3f(0, 
+//			(v.position.x - cp.x) * Planet::scaleFactor,
+//			(v.position.y - cp.y) * Planet::scaleFactor,
+//			(v.position.z - cp.z) * Planet::scaleFactor
+//		);
+//	}
+//
+//	glEnd();
+//
+//	this->debugShader->useProgram(false);
+//	if (mode == GL_LINES) {
+//		this->setLightingEnabled(lightingEnabled);
+//	}
+//}
 
 void SceneGraph::pushTransformationState(Transformation transformation) {
 	this->transformationStack.push_back(this->currModelMatrix);
