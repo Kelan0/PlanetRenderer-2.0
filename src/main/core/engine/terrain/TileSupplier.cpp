@@ -287,8 +287,8 @@ TileSupplier::TileSupplier(Planet* planet, uint32 seed, uint32 textureCapacity, 
 	glGenBuffers(1, &this->pixelTransferBuffer);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pixelTransferBuffer);
 	glBufferData(GL_PIXEL_PACK_BUFFER, this->tileSize * this->tileSize * this->maxAsyncReadbacks * sizeof(float) * 4, NULL, GL_STREAM_COPY);
-
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
 
 	// Initialize compute shader.
 	//glGenQueries(1, &timerQuery);
@@ -313,6 +313,7 @@ void TileSupplier::generateTexture(TileData* tile) {
 	this->tileGeneratorProgram->useProgram(true);
 	glBindImageTexture(0, this->textureArray, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
+	this->tileGeneratorProgram->setUniform("computePointBuffers", false);
 	this->tileGeneratorProgram->setUniform("tileTexture", 0);
 	this->tileGeneratorProgram->setUniform("textureIndex", (int32)tile->textureIndex);
 	this->tileGeneratorProgram->setUniform("planetRadius", (float)this->planet->getRadius());
@@ -609,6 +610,55 @@ void TileSupplier::update() {
 			}
 		}
 	}
+}
+
+void TileSupplier::computePointData(int32 count, fvec3* points, fvec4* data) {
+
+	this->tileGeneratorProgram->useProgram(true);
+
+	fvec4* p = new fvec4[count];
+	std::transform(points, points + count, p, [](fvec3 point) { return fvec4(point, 0.0F); });
+
+	uint32* ssbo = new uint32[2];
+	glGenBuffers(2, ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, count * sizeof(fvec4), p, GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[0]);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, count * sizeof(fvec4), NULL, GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[1]);
+
+	delete[] p;
+
+	this->tileGeneratorProgram->setUniform("computePointBuffers", true);
+	this->tileGeneratorProgram->setUniform("pointBufferSize", count);
+	this->tileGeneratorProgram->setUniform("tileTexture", 0);
+	this->tileGeneratorProgram->setUniform("planetRadius", (float)this->planet->getRadius());
+	this->tileGeneratorProgram->setUniform("elevationScale", (float)this->planet->getElevationScale());
+	this->tileGeneratorProgram->setUniform("textureSize", (int32)this->tileSize);
+	
+	int localSizeX = 16;
+	int localSizeY = 16;
+	int xGroups = (count + localSizeX * localSizeY) / (localSizeX * localSizeY);
+	int yGroups = 1;
+
+
+	glDispatchCompute(xGroups, yGroups, 1);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
+
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	
+	this->tileGeneratorProgram->useProgram(false);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
+	fvec4* mappedData = static_cast<fvec4*>(glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, count * sizeof(fvec4), GL_MAP_READ_BIT));
+	memcpy(data, mappedData, count * sizeof(fvec4));
+
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	glDeleteBuffers(2, ssbo);
 }
 
 void TileSupplier::getTileData(TerrainQuad* terrainQuad, TileData** store) {

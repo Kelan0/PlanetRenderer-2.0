@@ -88,7 +88,6 @@ GLMesh::~GLMesh() {
 }
 
 void GLMesh::uploadMeshData(MeshData* meshData) {
-
 	this->vertexCount = meshData->getVertexCount();
 	this->indexCount = meshData->getIndexCount();
 

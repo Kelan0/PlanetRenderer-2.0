@@ -35,8 +35,10 @@ private:
 	mat3 faceOrientations[6]; // face orientations.
 
 	dvec3 localCameraPosition; // The position of the camera in local space.
-	dvec2 faceCameraPosition; // The position of the camera in undeformed face space, for the closest face.
+	dvec3 faceCameraPosition; // The position of the camera in undeformed face space, for the closest face.
 	CubeFace closestCameraFace; // The closest cube face to the camera.
+
+	int32 debugRenderState;
 
 	dvec3 center;
 	double radius;
@@ -79,6 +81,8 @@ public:
 	bool horizonOcclusion(CubeFace face, BoundingVolume* bound);
 
 	//TileData* getTileData(TerrainQuad* terrainQuad);
+
+	TileSupplier* getTileSupplier() const;
 
 	TerrainQuad* getCubeFace(CubeFace face);
 
@@ -132,7 +136,7 @@ public:
 
 	float getHeight(dvec3 localPosition);
 
-	float getElevation(dvec3 sphereVector, bool normalized = false);
+	float getElevation(dvec3 sphereVector);
 
 	float getElevationUnderCamera() const;
 

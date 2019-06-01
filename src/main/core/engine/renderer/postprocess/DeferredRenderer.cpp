@@ -63,11 +63,9 @@ bool DeferredRenderer::render(double partialTicks, double dt) {
 
 	this->deferredFrameBuffer->bind(this->screenResolution.x, this->screenResolution.y);
 	this->deferredShader->useProgram(true);
+	this->screenRenderer->applyUniforms(this->deferredShader);
 	SCENE_GRAPH.applyUniforms(this->deferredShader);
 
-	this->deferredShader->setUniform("screenResolution", fvec2(this->screenResolution));
-	this->deferredShader->setUniform("msaaSamples", int32(this->screenRenderer->getMSAASamples()));
-	
 	this->deferredShader->setUniform("albedoTexture", 0);
 	this->deferredShader->setUniform("glowTexture", 1);
 	this->deferredShader->setUniform("normalTexture", 2);

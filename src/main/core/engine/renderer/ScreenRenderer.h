@@ -42,6 +42,9 @@ private:
 	float eyeAdaptationRateDecr; // The adaptation rate for decreasing scene brightness
 	float currScreenExposure; // The exposure of the screen in the current frame.
 
+	dvec3 sunDirection = dvec3(0.894427191, 0.0, -0.447213595); // [2, 0, -1]
+	bool exposureEnabled;
+	bool gammaCorrectionEnabled;
 
 	void renderBloom();
 public:
@@ -77,6 +80,16 @@ public:
 	uint32 getScreenTexture();
 
 	GLMesh* getScreenQuad();
+
+	dvec3 getSunDirection() const;
+
+	void setExposureEnabled(bool enabled);
+
+	bool isExposureEnabled() const;
+
+	void setGammaCorrectionEnabled(bool enabled);
+
+	bool isGammaCorrectionEnabled() const;
 
 	DeferredRenderer* getDeferredRenderer() const;
 

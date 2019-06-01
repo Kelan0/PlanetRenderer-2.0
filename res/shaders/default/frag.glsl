@@ -7,8 +7,10 @@ in vec3 fs_worldNormal;
 in vec3 fs_vertexPosition;
 in vec3 fs_vertexNormal;
 in vec2 fs_vertexTexture;
+in vec3 fs_vertexColour;
 in float fs_flogz;
 
+uniform vec4 colour = vec4(1.0);
 uniform float depthCoefficient;
 uniform float nearPlane;
 uniform float farPlane;
@@ -21,14 +23,15 @@ out vec3 outNormal;
 out vec2 outSpecularEmission;
 
 void main(void) {
-    vec3 colour = vec3(1.0);
-    
+    outDiffuse = colour.rgb * fs_vertexColour.rgb;
+
     if (lightingEnabled) {
         float nDotL = max(0.2, dot(lightDir, fs_worldNormal));
-         colour *= nDotL;
+         outDiffuse.rgb *= nDotL;
     }
 
-    outDiffuse = colour.rgb;
+    outNormal = fs_worldNormal;
+
     //float depth = gl_FragCoord.z;
     //float linearDepth = (2.0 * nearPlane) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
     //outDiffuse = vec4(linearDepth, linearDepth, linearDepth, 1.0);

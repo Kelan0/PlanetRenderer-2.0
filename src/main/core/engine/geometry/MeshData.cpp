@@ -47,6 +47,13 @@ bool MeshData::addFace(uint32 i0, uint32 i1, uint32 i2, uint32 i3) {
 	return true;
 }
 
+void MeshData::clear() {
+	this->vertices.clear();
+	this->indices.clear();
+	this->vertexData.clear();
+	this->meshChanged = true;
+}
+
 int32 MeshData::getVertexCount() const {
 	return this->vertices.size();
 }

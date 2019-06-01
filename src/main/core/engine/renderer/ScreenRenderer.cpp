@@ -19,6 +19,9 @@ ScreenRenderer::ScreenRenderer() {
 	this->fixedSampleLocations = true;
 	this->eyeAdaptationRateIncr = 2.0;
 	this->eyeAdaptationRateDecr = 2.0;
+
+	this->exposureEnabled = true;
+	this->gammaCorrectionEnabled = true;
 }
 
 
@@ -134,6 +137,9 @@ void ScreenRenderer::applyUniforms(ShaderProgram* program) {
 	program->setUniform("msaaSamples", int32(this->msaaSamples));
 	program->setUniform("screenResolution", fvec2(this->screenResolution));
 	program->setUniform("screenExposureMultiplier", this->currScreenExposure);
+	program->setUniform("exposureEnabled", this->exposureEnabled);
+	program->setUniform("gammaCorrectionEnabled", this->gammaCorrectionEnabled);
+	program->setUniform("directionToLight", fvec3(this->sunDirection));
 }
 
 void ScreenRenderer::bindScreenBuffer() const {
@@ -260,6 +266,27 @@ GLMesh* ScreenRenderer::getScreenQuad() {
 	return this->screenQuad;
 }
 
+dvec3 ScreenRenderer::getSunDirection() const {
+	return this->sunDirection;
+}
+
+void ScreenRenderer::setExposureEnabled(bool enabled) {
+	this->exposureEnabled = enabled;
+}
+
+bool ScreenRenderer::isExposureEnabled() const {
+	return this->exposureEnabled;
+}
+
+void ScreenRenderer::setGammaCorrectionEnabled(bool enabled) {
+	this->gammaCorrectionEnabled = enabled;
+}
+
+bool ScreenRenderer::isGammaCorrectionEnabled() const {
+	return this->gammaCorrectionEnabled;
+}
+
+
 DeferredRenderer* ScreenRenderer::getDeferredRenderer() const {
 	return this->deferredRenderer;
 }
@@ -271,5 +298,4 @@ AtmosphereRenderer* ScreenRenderer::getAtmosphereRenderer() const {
 HistogramRenderer* ScreenRenderer::getHistogramRenderer() const {
 	return this->histogramRenderer;
 }
-
 

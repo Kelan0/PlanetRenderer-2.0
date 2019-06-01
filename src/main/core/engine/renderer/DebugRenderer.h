@@ -21,8 +21,8 @@ private:
 
 
 	fvec4 colour;
-
-	float lineThickness;
+	float lineSize;
+	float pointSize;
 	bool enableDepth;
 	bool enableLighting;
 	bool enableBlend;
@@ -30,6 +30,7 @@ private:
 	uint32 blendSrcFactor;
 	uint32 blendDstFactor;
 
+	bool drawing;
 	MeshData* currMeshData;
 	uint32 currentMode;
 public:
@@ -38,7 +39,11 @@ public:
 
 	void init();
 
-	void setLineThickness(float thickness);
+	void setColour(fvec4 colour);
+
+	void setLineSize(float size);
+
+	void setPointSize(float size);
 
 	void setDepthEnabled(bool enabled);
 
@@ -50,8 +55,10 @@ public:
 
 	void begin(uint32 mode);
 
-	void render(std::vector<Vertex> vertices, std::vector<int32> indices, dmat4 modelMatrix = dmat4(1.0));
+	void draw(std::vector<Vertex> vertices, std::vector<int32> indices, dmat4 modelMatrix = dmat4(1.0));
 
 	void finish();
+
+	void renderMesh(GLMesh* mesh);
 };
 

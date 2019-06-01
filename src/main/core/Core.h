@@ -23,6 +23,10 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/hash.hpp>
+#include <glm/gtx/compatibility.hpp>
+#include <glm/gtx/spline.hpp>
+#include <glm/gtx/vector_angle.hpp>
+#include <glm/gtc/random.hpp>
 
 typedef signed long long int64;
 typedef signed int int32;
@@ -114,3 +118,18 @@ typedef fmat4x4 mat4x4;
 #define QUARTER_PI glm::quarter_pi<double>()
 
 #define ROOT_TWO glm::root_two<double>()
+
+#define frand(min, max) (min + (max - min) * (float(rand()) / float(RAND_MAX)))
+#define drand(min, max) (min + (max - min) * (double(rand()) / double(RAND_MAX)))
+
+
+// Utility functions that are useful anywhere...
+
+inline dvec3 slerp(dvec3 p0, dvec3 p1, double t) {
+	double omega = acos(dot(p0, p1));
+	double s0 = sin(omega);
+	double s1 = sin((1.0 - t) * omega);
+	double s2 = sin(t * omega);
+
+	return (p0 * s1 + p1 * s2) / s0;
+}

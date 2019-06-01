@@ -23,13 +23,12 @@ double Planet::scaleFactor = 1.0;
 double Planet::currScaleFactor = 1.0;
 double Planet::prevScaleFactor = 1.0;
 
-Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSplitDepth):
+Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSplitDepth) :
 	GameObject(), center(center), radius(radius), invRadius(1.0 / radius), splitThreshold(splitThreshold), maxSplitDepth(maxSplitDepth) {
 
 	this->tileSupplier = new TileSupplier(this);
 	this->terrainRenderer = new TerrainRenderer(8);
 	this->atmosphere = new Atmosphere(this);
-	this->mapGenerator = new MapGenerator(this);
 
 	this->faceOrientations[X_NEG][0] = fvec3(0, 0, +1);
 	this->faceOrientations[X_NEG][1] = fvec3(-1, 0, 0);
@@ -84,6 +83,7 @@ Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSpli
 	this->horizonRadius = this->radius - this->elevationScale;
 	this->invHorizonRadius = 1.0 / this->horizonRadius;
 
+	this->mapGenerator = new MapGenerator(this);
 }
 
 Planet::~Planet() {
@@ -97,37 +97,68 @@ Planet::~Planet() {
 
 }
 
-void Planet::render(SceneGraph* sceneGraph, double partialTicks, double dt) {
+void Planet::render(SceneGraph * sceneGraph, double partialTicks, double dt) {
 	GameObject::render(sceneGraph, partialTicks, dt);
 
 	uint64 a = Time::now();
 
-	Planet::scaleFactor = Planet::prevScaleFactor * (1.0 - partialTicks) + Planet::currScaleFactor *  partialTicks;
-	
+	Planet::scaleFactor = Planet::prevScaleFactor * (1.0 - partialTicks) + Planet::currScaleFactor * partialTicks;
+
 	dvec3 cameraPosition = SCENE_GRAPH.getCamera()->getPosition();
 	this->localCameraPosition = this->worldToLocalPoint(cameraPosition);
 	this->closestCameraFace = this->getClosestFaceLocal(this->localCameraPosition);
 	this->faceCameraPosition = this->localToCubeFacePoint(this->localCameraPosition);
 
 	this->elevationUnderCamera = this->faces[this->closestCameraFace]->getElevation(this->faceCameraPosition);
+	//logInfo("Elevation at [%f, %f] = %f", this->faceCameraPosition.x, this->faceCameraPosition.z, this->elevationUnderCamera);
 
-	this->terrainRenderer->render(this, X_NEG, this->faces[X_NEG], partialTicks, dt);
-	this->terrainRenderer->render(this, X_POS, this->faces[X_POS], partialTicks, dt);
-	this->terrainRenderer->render(this, Y_NEG, this->faces[Y_NEG], partialTicks, dt);
-	this->terrainRenderer->render(this, Y_POS, this->faces[Y_POS], partialTicks, dt);
-	this->terrainRenderer->render(this, Z_NEG, this->faces[Z_NEG], partialTicks, dt);
-	this->terrainRenderer->render(this, Z_POS, this->faces[Z_POS], partialTicks, dt);
+	if (INPUT_HANDLER.keyPressed(KEY_F2)) {
+		this->debugRenderState = (this->debugRenderState + 1) % 4;
+	}
 
-	SCREEN_RENDERER.getAtmosphereRenderer()->addAtmosphere(this->atmosphere);
-	
+	if (this->debugRenderState == 0) { // Render normal
+		this->mapGenerator->setRenderDebugSurface(false);
+		this->mapGenerator->setRenderDebugEdges(false);
+		SCREEN_RENDERER.setExposureEnabled(true);
+		SCREEN_RENDERER.setGammaCorrectionEnabled(true);
+
+		this->terrainRenderer->render(this, X_NEG, this->faces[X_NEG], partialTicks, dt);
+		this->terrainRenderer->render(this, X_POS, this->faces[X_POS], partialTicks, dt);
+		this->terrainRenderer->render(this, Y_NEG, this->faces[Y_NEG], partialTicks, dt);
+		this->terrainRenderer->render(this, Y_POS, this->faces[Y_POS], partialTicks, dt);
+		this->terrainRenderer->render(this, Z_NEG, this->faces[Z_NEG], partialTicks, dt);
+		this->terrainRenderer->render(this, Z_POS, this->faces[Z_POS], partialTicks, dt);
+		this->tileSupplier->update();
+
+		SCREEN_RENDERER.getAtmosphereRenderer()->addAtmosphere(this->atmosphere);
+	}
+	else if (this->debugRenderState == 1) { // Render map surface
+		this->mapGenerator->setRenderDebugSurface(true);
+		this->mapGenerator->setRenderDebugEdges(false);
+		SCREEN_RENDERER.setExposureEnabled(false);
+		SCREEN_RENDERER.setGammaCorrectionEnabled(false);
+	}
+	else if (this->debugRenderState == 2) {// Render map edges
+		this->mapGenerator->setRenderDebugSurface(false);
+		this->mapGenerator->setRenderDebugEdges(true);
+		SCREEN_RENDERER.setExposureEnabled(false);
+		SCREEN_RENDERER.setGammaCorrectionEnabled(false);
+	}
+	else if (this->debugRenderState == 3) {// Render map surface and edges
+		this->mapGenerator->setRenderDebugSurface(true);
+		this->mapGenerator->setRenderDebugEdges(true);
+		SCREEN_RENDERER.setExposureEnabled(false);
+		SCREEN_RENDERER.setGammaCorrectionEnabled(false);
+	}
+
+
 	this->mapGenerator->render(partialTicks, dt);
-	this->tileSupplier->update();
 
 	uint64 b = Time::now();
 	//logInfo("Took %f ms to render terrain", (b - a) / 1000000.0);
 }
 
-void Planet::update(SceneGraph* sceneGraph, double dt) {
+void Planet::update(SceneGraph * sceneGraph, double dt) {
 	GameObject::update(sceneGraph, dt);
 
 	uint64 a = Time::now();
@@ -161,10 +192,12 @@ void Planet::update(SceneGraph* sceneGraph, double dt) {
 		if (this->tileSupplierDebugState == 1) {
 			this->tileSupplier->setOverlayDebug(true);
 			this->tileSupplier->setShowDebug(false);
-		} else if (this->tileSupplierDebugState == 2) {
+		}
+		else if (this->tileSupplierDebugState == 2) {
 			this->tileSupplier->setOverlayDebug(false);
 			this->tileSupplier->setShowDebug(true);
-		} else {
+		}
+		else {
 			this->tileSupplier->setOverlayDebug(false);
 			this->tileSupplier->setShowDebug(false);
 		}
@@ -175,14 +208,14 @@ void Planet::update(SceneGraph* sceneGraph, double dt) {
 	}
 }
 
-void Planet::applyUniforms(ShaderProgram* program) {
+void Planet::applyUniforms(ShaderProgram * program) {
 	program->setUniform("localCameraPosition", this->localCameraPosition);
-	program->setUniform("elevationScale", (float) this->elevationScale);
-	program->setUniform("planetRadius", (float) this->radius);
+	program->setUniform("elevationScale", (float)this->elevationScale);
+	program->setUniform("planetRadius", (float)this->radius);
 	program->setUniform("renormalizeSphere", Planet::scaleFactor < 1.0);
 }
 
-IntersectionType Planet::getVisibility(CubeFace face, BoundingVolume* bound, bool horizonTest) {
+IntersectionType Planet::getVisibility(CubeFace face, BoundingVolume * bound, bool horizonTest) {
 	if (bound != NULL) {
 
 		const Camera* camera = SCENE_GRAPH.getCamera();
@@ -195,7 +228,7 @@ IntersectionType Planet::getVisibility(CubeFace face, BoundingVolume* bound, boo
 				return FULL_INTERSECTION;
 			}
 
-			if (AxisAlignedBB* bb = dynamic_cast<AxisAlignedBB*>(bound)) {
+			if (AxisAlignedBB * bb = dynamic_cast<AxisAlignedBB*>(bound)) {
 				dvec3 a = bb->getMin();
 				dvec3 b = bb->getMax();
 
@@ -237,7 +270,7 @@ IntersectionType Planet::getVisibility(CubeFace face, BoundingVolume* bound, boo
 				return FULL_INTERSECTION;
 			}
 
-			if (Frustum* bb = dynamic_cast<Frustum*>(bound)) {
+			if (Frustum * bb = dynamic_cast<Frustum*>(bound)) {
 
 				const dvec3 v0 = bb->getCorner(FRUSTUM_LEFT_TOP_NEAR);
 				const dvec3 v1 = bb->getCorner(FRUSTUM_RIGHT_TOP_NEAR);
@@ -295,7 +328,7 @@ IntersectionType Planet::getVisibility(CubeFace face, BoundingVolume* bound, boo
 						};
 
 
-						DEBUG_RENDERER.render(v, i);
+						DEBUG_RENDERER.draw(v, i);
 					}
 				}
 
@@ -328,6 +361,10 @@ bool Planet::horizonOcclusion(CubeFace face, BoundingVolume * bound) {
 //TileData* Planet::getTileData(TerrainQuad* terrainQuad) {
 //	return this->tileSupplier->consumeTileData(terrainQuad);
 //}
+
+TileSupplier* Planet::getTileSupplier() const {
+	return this->tileSupplier;
+}
 
 TerrainQuad* Planet::getCubeFace(CubeFace face) {
 	return this->faces[face];
@@ -372,13 +409,16 @@ CubeFace Planet::getClosestSphereVector(dvec3 sphereVector) {
 	if (xAbs > yAbs) {
 		if (xAbs > zAbs) {
 			maxIndex = 0; // x is largest
-		} else {
+		}
+		else {
 			maxIndex = 2; // z is largest
 		}
-	} else { // y >= x
+	}
+	else { // y >= x
 		if (yAbs > zAbs) {
 			maxIndex = 1; // y is largest
-		} else {
+		}
+		else {
 			maxIndex = 2; // z is largest
 		}
 	}
@@ -386,13 +426,16 @@ CubeFace Planet::getClosestSphereVector(dvec3 sphereVector) {
 	if (maxIndex == 0) {
 		if (sphereVector.x < 0) return X_NEG;
 		else return X_POS;
-	} else if (maxIndex == 1) {
+	}
+	else if (maxIndex == 1) {
 		if (sphereVector.y < 0) return Y_NEG;
 		else return Y_POS;
-	} else if (maxIndex == 2) {
+	}
+	else if (maxIndex == 2) {
 		if (sphereVector.z < 0) return Z_NEG;
 		else return Z_POS;
-	} else {
+	}
+	else {
 		// not possible ?
 		return CubeFace(-1);
 	}
@@ -434,7 +477,7 @@ dvec3 Planet::cubeFaceToLocalPoint(CubeFace face, dvec3 facePoint) {
 	return n * (this->radius + facePoint.y);
 }
 
-dvec3 Planet::localToCubeFacePoint(dvec3 localPoint, CubeFace* faceIndex) {
+dvec3 Planet::localToCubeFacePoint(dvec3 localPoint, CubeFace * faceIndex) {
 
 	double height = length(localPoint);
 	localPoint /= height;
@@ -443,20 +486,22 @@ dvec3 Planet::localToCubeFacePoint(dvec3 localPoint, CubeFace* faceIndex) {
 	double f;
 	dvec2 uv;
 	if (absPoint.z >= absPoint.x && absPoint.z >= absPoint.y) { // z
-		if (faceIndex != NULL) *faceIndex = localPoint.z < 0.0 ? Z_NEG : Z_POS;
+		if (faceIndex != NULL) * faceIndex = localPoint.z < 0.0 ? Z_NEG : Z_POS;
 		f = 0.5 / absPoint.z;
 		uv = dvec2(localPoint.z < 0.0 ? -localPoint.x : localPoint.x, -localPoint.y);
-	} else if (absPoint.y >= absPoint.x) { // y
-		if (faceIndex != NULL) *faceIndex = localPoint.y < 0.0 ? Y_NEG : Y_POS;
+	}
+	else if (absPoint.y >= absPoint.x) { // y
+		if (faceIndex != NULL) * faceIndex = localPoint.y < 0.0 ? Y_NEG : Y_POS;
 		f = 0.5 / absPoint.y;
 		uv = dvec2(localPoint.x, localPoint.y < 0.0 ? -localPoint.z : localPoint.z);
-	} else { // x
-		if (faceIndex != NULL) *faceIndex = localPoint.x < 0.0 ? X_NEG : X_POS;
+	}
+	else { // x
+		if (faceIndex != NULL) * faceIndex = localPoint.x < 0.0 ? X_NEG : X_POS;
 		f = 0.5 / absPoint.x;
 		uv = dvec2(localPoint.x < 0.0 ? localPoint.z : -localPoint.z, -localPoint.y);
 	}
 
-	uv = (uv * f + 0.5) * this->getDiameter() - this->getRadius();
+	uv = (uv * f + 0.5);// *this->getDiameter() - this->getRadius();
 	return dvec3(uv.x, height - this->radius, uv.y);
 }
 
@@ -469,7 +514,8 @@ dmat3 Planet::getLocalDeformation(dvec3 localPoint, dmat3 axis) {
 	m[1] = normalize(localPoint);
 	if (fabs(dot(m[1], axis[2])) < 0.999) {
 		m[0] = normalize(cross(m[1], axis[2]));
-	} else {
+	}
+	else {
 		m[0] = normalize(cross(m[1], axis[0]));
 	}
 
@@ -560,11 +606,21 @@ float Planet::getAltitude(dvec3 localPosition) const {
 float Planet::getHeight(dvec3 localPosition) {
 	double distance = length(localPosition);
 
-	return (distance - this->radius + this->getElevation(localPosition / distance, true));// *Planet::scaleFactor;
+	return (distance - this->radius + this->getElevation(localPosition));// *Planet::scaleFactor;
 }
 
-float Planet::getElevation(dvec3 sphereVector, bool normalized) {
-	return 0.0;
+float Planet::getElevation(dvec3 sphereVector) {
+	sphereVector = normalize(sphereVector);
+
+	CubeFace cubeFace = this->getClosestSphereVector(sphereVector);
+	TerrainQuad* terrainQuad = this->getCubeFace(cubeFace);
+	dvec3 facePoint = this->localToCubeFacePoint(sphereVector * this->radius, &cubeFace);
+
+	if (terrainQuad != NULL) {
+		return terrainQuad->getElevation(dvec2(facePoint.x, facePoint.z));
+	}
+
+	return 0.0; // TODO
 }
 
 float Planet::getElevationUnderCamera() const {

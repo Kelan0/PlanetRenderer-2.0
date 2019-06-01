@@ -19,7 +19,7 @@ Atmosphere::Atmosphere(Planet* planet, float atmosphereHeight, float rayleighHei
 	rayleighWavelength(rayleighWavelength),
 	mieWavelength(mieWavelength) {
 
-	this->sunDirection = fvec3(0.26726F, 0.8018F, 0.5345F);
+	this->sunDirection = SCREEN_RENDERER.getSunDirection();
 	this->sunIntensity = 22.0F;
 }
 

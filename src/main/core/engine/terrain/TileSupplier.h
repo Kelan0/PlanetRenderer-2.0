@@ -189,6 +189,8 @@ public:
 	 */
 	void update();
 
+	void computePointData(int32 count, fvec3* points, fvec4* data);
+
 	/**
 	 * Gets the TileData corresponding to the specified TerrainQuad, and stores it in the storage
 	 * pointer. The active tile cache will be searched first, and the tile will be returned if it

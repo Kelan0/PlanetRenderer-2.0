@@ -242,7 +242,7 @@ void Frustum::renderDebug(bool lines) const {
 		
 		DEBUG_RENDERER.begin(LINES);
 		DEBUG_RENDERER.setLightingEnabled(false);
-		DEBUG_RENDERER.render(frustumCorners, lineIndices);
+		DEBUG_RENDERER.draw(frustumCorners, lineIndices);
 		DEBUG_RENDERER.finish();
 	} else {
 		fvec3 n0 = fvec3(this->planes[FRUSTUM_LEFT]);
@@ -272,7 +272,7 @@ void Frustum::renderDebug(bool lines) const {
 
 		DEBUG_RENDERER.begin(TRIANGLES);
 		DEBUG_RENDERER.setLightingEnabled(true);
-		DEBUG_RENDERER.render(frustumCorners, triIndices);
+		DEBUG_RENDERER.draw(frustumCorners, triIndices);
 		DEBUG_RENDERER.finish();
 	}
 }

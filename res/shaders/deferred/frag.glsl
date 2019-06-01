@@ -1,6 +1,6 @@
 #version 330 core
 
-const vec3 directionToLight = vec3(0.26726, 0.8018, 0.5345); // [1, 3, 2]
+//const vec3 directionToLight = vec3(0.26726, 0.8018, 0.5345); // [1, 3, 2]
 
 in vec2 fs_texturePosition;
 
@@ -14,6 +14,8 @@ uniform sampler2DMS normalTexture;
 uniform sampler2DMS positionTexture;
 uniform sampler2DMS specularEmissionTexture;
 uniform sampler2DMS depthTexture;
+
+uniform vec3 directionToLight;
 
 out vec4 outColour;
 
@@ -32,16 +34,19 @@ void main(void) {
 
     // TODO: specular/emission, multiple lights, MSAA
     if (distanceToCamera > 0.0) {
-        float diffuseCoef = clamp(dot(normal, directionToLight), 0.0, 1.0);
-        vec3 diffuse = albedo * diffuseCoef;
+        if (dot(normal, normal) > 1e-12 && dot(directionToLight, directionToLight) > 1e-12) {
+            float diffuseCoef = clamp(dot(normal, directionToLight), 0.0, 1.0);
+            
+            vec3 diffuse = albedo * diffuseCoef;
 
-        float specularCoef = 0.0;
-        if (specularEmission.r > 0.0 && specularEmission.g > 0.0) {
-            specularCoef = pow(max(0.0, dot(directionToCamera, normalize(reflect(-directionToLight, normal)))), specularEmission.r);
+            float specularCoef = 0.0;
+            if (specularEmission.r > 0.0 && specularEmission.g > 0.0) {
+                specularCoef = pow(max(0.0, dot(directionToCamera, normalize(reflect(-directionToLight, normal)))), specularEmission.r);
+            }
+            vec3 specular = albedo * diffuseCoef * specularCoef * specularEmission.g;
+
+            colour = diffuse + specular;
         }
-        vec3 specular = albedo * diffuseCoef * specularCoef * specularEmission.g;
-
-        colour = diffuse + specular;
     }
 
     outColour = vec4(colour, 1.0);

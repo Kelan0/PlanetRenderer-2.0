@@ -1,6 +1,6 @@
 #version 330 core
 
-const vec3 directionToLight = vec3(0.26726, 0.8018, 0.5345); // [1, 3, 2]
+//const vec3 directionToLight = vec3(0.26726, 0.8018, 0.5345); // [1, 3, 2]
 
 const vec2 histogramMinBound = vec2(0.68, 0.02);
 const vec2 histogramMaxBound = vec2(0.98, 0.32);
@@ -11,6 +11,10 @@ uniform int histogramDownsample;
 uniform vec2 screenResolution;
 uniform vec2 histogramResolution;
 uniform float screenExposureMultiplier;
+
+uniform bool exposureEnabled;
+uniform bool gammaCorrectionEnabled;
+uniform vec3 directionToLight;
 
 uniform sampler2D screenTexture;
 
@@ -106,8 +110,16 @@ void gammaCorrection(inout vec3 colour) {
 }
 
 void main(void) {
-    vec3 colour = texture(screenTexture, fs_texturePosition).rgb * screenExposureMultiplier;
-    gammaCorrection(colour);
+    vec3 colour = texture(screenTexture, fs_texturePosition).rgb;
+
+    if (exposureEnabled) {
+        colour *= screenExposureMultiplier;
+    }
+
+    if (gammaCorrectionEnabled) {
+        gammaCorrection(colour);
+    }
+
     //renderHistogramDebug(colour);
 
     outColour = vec4(colour, 1.0);

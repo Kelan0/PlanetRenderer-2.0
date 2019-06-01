@@ -229,7 +229,7 @@ void render(double partialTicks, double dt) {
 
 	DEBUG_RENDERER.begin(GL_LINES);
 	DEBUG_RENDERER.setLightingEnabled(false);
-	DEBUG_RENDERER.render(vt, ix);
+	DEBUG_RENDERER.draw(vt, ix);
 	DEBUG_RENDERER.finish();
 }
 

@@ -52,6 +52,8 @@ private:
 	int32 indexCount;
 	int32 allocatedVertexBufferSize;
 	int32 allocatedIndexBufferSize;
+
+	MeshData* meshData;
 public:
 	GLMesh(MeshData* meshData = NULL, VertexLayout attributes = DEFAULT_VERTEX_LAYOUT);
 

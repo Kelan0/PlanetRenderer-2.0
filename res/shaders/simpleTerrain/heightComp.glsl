@@ -1,17 +1,21 @@
 #version 430 core
 
-struct TerrainGenerator {
-    float frequency;
-    float lacunarity;
-    float gain;
-    float amplitude;
-    int octaves;
-    float noiseExponent;
-    bool absolute;
-    bool oneMinus;
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout (std430, binding = 1) readonly buffer PointBufferInput
+{
+	vec4 pointBufferInput[];
+};
+
+layout (std430, binding = 2) writeonly buffer PointBufferOutput
+{
+	vec4 pointBufferOutput[];
 };
 
 writeonly uniform image2DArray tileTexture;
+
+uniform bool computePointBuffers;
+uniform int pointBufferSize;
 uniform int textureIndex;
 uniform float planetRadius;
 uniform float elevationScale;
@@ -161,35 +165,48 @@ vec3 getSurfacePosition(float height, vec3 n, vec4 interp) {
     //return (quadCorners * interp).xyz;
 }
 
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main(void) {
-    ivec3 storePos = ivec3(gl_GlobalInvocationID.xy, textureIndex);
-    vec2 quadPosition = vec2(gl_GlobalInvocationID.xy) / vec2(gl_WorkGroupSize.xy * gl_NumWorkGroups.xy);
+    if (!computePointBuffers) { // Computing regular tile data.
+        ivec3 storePos = ivec3(gl_GlobalInvocationID.xy, textureIndex);
+        vec2 quadPosition = vec2(gl_GlobalInvocationID.xy) / vec2(gl_WorkGroupSize.xy * gl_NumWorkGroups.xy);
 
-    float mountainMultiplier = 1.0 / 64.0;
-    vec4 i00 = getInterp(quadPosition);
-    vec4 i10 = getInterp(quadPosition + vec2(mountainMultiplier, 0.0));
-    vec4 i01 = getInterp(quadPosition + vec2(0.0, mountainMultiplier));
-    
-    vec3 s00 = normalize((quadNormals * i00).xyz);
-    vec3 s10 = normalize((quadNormals * i10).xyz);
-    vec3 s01 = normalize((quadNormals * i01).xyz);
+        float f = 1.0 / 64.0;
+        vec4 i00 = getInterp(quadPosition);
+        vec4 i10 = getInterp(quadPosition + vec2(f, 0.0));
+        vec4 i01 = getInterp(quadPosition + vec2(0.0, f));
+        
+        vec3 s00 = normalize((quadNormals * i00).xyz);
+        vec3 s10 = normalize((quadNormals * i10).xyz);
+        vec3 s01 = normalize((quadNormals * i01).xyz);
 
-    float n00 = getHeight(s00);
-    float n10 = getHeight(s10);
-    float n01 = getHeight(s01);
-    
-    vec3 normal;
+        float n00 = getHeight(s00);
+        float n10 = getHeight(s10);
+        float n01 = getHeight(s01);
+        
+        vec3 normal;
 
-    //if (1.0 - abs(dot(s00, s10)) > 1e-18 && 1.0 - abs(dot(s00, s01)) > 1e-18) {
-        vec3 h00 = getSurfacePosition(n00, s00, i00);//((quadCorners + n00 * elevationScale * quadNormals) * i00).xyz;
-        vec3 h10 = getSurfacePosition(n10, s10, i10);//((quadCorners + n10 * elevationScale * quadNormals) * i10).xyz;
-        vec3 h01 = getSurfacePosition(n01, s01, i01);//((quadCorners + n01 * elevationScale * quadNormals) * i01).xyz;
+        //if (1.0 - abs(dot(s00, s10)) > 1e-18 && 1.0 - abs(dot(s00, s01)) > 1e-18) {
+            vec3 h00 = getSurfacePosition(n00, s00, i00);//((quadCorners + n00 * elevationScale * quadNormals) * i00).xyz;
+            vec3 h10 = getSurfacePosition(n10, s10, i10);//((quadCorners + n10 * elevationScale * quadNormals) * i10).xyz;
+            vec3 h01 = getSurfacePosition(n01, s01, i01);//((quadCorners + n01 * elevationScale * quadNormals) * i01).xyz;
 
-        normal = cross(normalize(h10 - h00), normalize(h00 - h01));
-    //} else {
-    //    normal = s00;
-    //}
+            normal = cross(normalize(h10 - h00), normalize(h00 - h01));
+        //} else {
+        //    normal = s00;
+        //}
 
-    imageStore(tileTexture, storePos, vec4(normal, n00));
+        imageStore(tileTexture, storePos, vec4(normal, n00));
+    } else { // computing point data in SSBOs
+
+        // [63 x 1 x 1] & [16 x 16 x 1]
+
+        uint localIndex = gl_WorkGroupSize.y * gl_LocalInvocationID.x + gl_LocalInvocationID.y;
+        uint globalIndex = gl_NumWorkGroups.y * gl_WorkGroupID.x + gl_WorkGroupID.y;
+        
+        uint index = (gl_WorkGroupSize.x * gl_WorkGroupSize.y) * globalIndex + localIndex;
+        if (index < pointBufferSize) {
+            float h = getHeight(normalize(pointBufferInput[index].xyz));
+            pointBufferOutput[index] = vec4(0.0, 0.0, 0.0, h);
+        }
+    }
 }

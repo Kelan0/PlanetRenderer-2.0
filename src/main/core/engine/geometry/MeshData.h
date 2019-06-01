@@ -19,9 +19,10 @@ struct Vertex {
 	fvec3 position;
 	fvec3 normal;
 	fvec2 texture;
+	fvec3 colour;
 
-	Vertex(fvec3 position = fvec3(0.0), fvec3 normal = fvec3(0.0), fvec2 texture = fvec2(0.0)) :
-		position(position), normal(normal), texture(texture) {}
+	Vertex(fvec3 position = fvec3(0.0), fvec3 normal = fvec3(0.0), fvec2 texture = fvec2(0.0), fvec3 colour = fvec3(1.0)) :
+		position(position), normal(normal), texture(texture), colour(colour) {}
 };
 
 struct VertexLayout {
@@ -68,6 +69,8 @@ public:
 	bool addFace(uint32 i0, uint32 i1, uint32 i2);
 
 	bool addFace(uint32 i0, uint32 i1, uint32 i2, uint32 i3);
+
+	void clear();
 
 	int32 getVertexCount() const;
 
