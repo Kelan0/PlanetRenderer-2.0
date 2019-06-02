@@ -113,12 +113,12 @@ void Planet::render(SceneGraph * sceneGraph, double partialTicks, double dt) {
 	//logInfo("Elevation at [%f, %f] = %f", this->faceCameraPosition.x, this->faceCameraPosition.z, this->elevationUnderCamera);
 
 	if (INPUT_HANDLER.keyPressed(KEY_F2)) {
-		this->debugRenderState = (this->debugRenderState + 1) % 4;
+		this->debugRenderState = (this->debugRenderState + 1) % 3;
 	}
 
 	if (this->debugRenderState == 0) { // Render normal
 		this->mapGenerator->setRenderDebugSurface(false);
-		this->mapGenerator->setRenderDebugEdges(false);
+		this->mapGenerator->setRenderDebugCurrents(false);
 		SCREEN_RENDERER.setExposureEnabled(true);
 		SCREEN_RENDERER.setGammaCorrectionEnabled(true);
 
@@ -134,19 +134,13 @@ void Planet::render(SceneGraph * sceneGraph, double partialTicks, double dt) {
 	}
 	else if (this->debugRenderState == 1) { // Render map surface
 		this->mapGenerator->setRenderDebugSurface(true);
-		this->mapGenerator->setRenderDebugEdges(false);
+		this->mapGenerator->setRenderDebugCurrents(false);
 		SCREEN_RENDERER.setExposureEnabled(false);
 		SCREEN_RENDERER.setGammaCorrectionEnabled(false);
 	}
-	else if (this->debugRenderState == 2) {// Render map edges
-		this->mapGenerator->setRenderDebugSurface(false);
-		this->mapGenerator->setRenderDebugEdges(true);
-		SCREEN_RENDERER.setExposureEnabled(false);
-		SCREEN_RENDERER.setGammaCorrectionEnabled(false);
-	}
-	else if (this->debugRenderState == 3) {// Render map surface and edges
+	else if (this->debugRenderState == 2) {// Render map currents
 		this->mapGenerator->setRenderDebugSurface(true);
-		this->mapGenerator->setRenderDebugEdges(true);
+		this->mapGenerator->setRenderDebugCurrents(true);
 		SCREEN_RENDERER.setExposureEnabled(false);
 		SCREEN_RENDERER.setGammaCorrectionEnabled(false);
 	}

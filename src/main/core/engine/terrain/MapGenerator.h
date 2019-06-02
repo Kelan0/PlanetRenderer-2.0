@@ -23,20 +23,25 @@ private:
 
 	uint32 resolution;
 
-	GLMesh* debugLineMesh;
-	GLMesh* debugTriangleMesh;
-	GLMesh* debugCurrentArrowMesh;
+	GLMesh* debugSurfaceTriangleMesh;
+	GLMesh* debugSurfaceLineMesh;
+	GLMesh* debugCurrentTriangleMesh;
+	GLMesh* debugCurrentLineMesh;
 
-	std::vector<MapNode> nodes;
-	std::vector<MapEdge> edges;
-	std::vector<MapFace> faces;
+	std::vector<MapNode*> nodes;
+	std::vector<MapEdge*> edges;
+	std::vector<MapFace*> faces;
 
-	bool renderDebugEdges;
+	bool renderDebugCurrents;
 	bool renderDebugSurface;
 
 	void generateIcosohedron();
 
 	void generateAirCurrents();
+
+	void initializeHeat();
+
+	void generateDebugMeshes();
 
 public:
 	MapGenerator(Planet* planet, uint32 resolution = 80);
@@ -45,9 +50,9 @@ public:
 
 	void render(double partialTicks, double dt);
 
-	void setRenderDebugEdges(bool renderDebugEdges);
+	void setRenderDebugCurrents(bool renderDebugCurrents);
 
-	bool doRenderDebugEdges() const;
+	bool doRenderDebugCurrents() const;
 
 	void setRenderDebugSurface(bool renderDebugSurface);
 
@@ -58,14 +63,25 @@ struct MapNode {
 	dvec3 p; // The position of this node.
 	std::vector<int32> e; // The edges connected to this node.
 	std::vector<int32> f; // The faces connected to this node.
+	std::vector<double> c; // The air current strengths to each connected node.
+
+	fvec4 heightmapData;
+
+	double area = 1.0;
 
 	bool water;
-	float temperature;
-	float moisture;
+	double heatAbsorbsion; // The amount of heat that this node can absorb, determined by air speed and if it is water.
+	double nextHeat; // The air heat for the next iteration
+	double airHeat; // The heat being moved around by wind
+	double airMoisture; // The moisture being moved around by wind
+	double temperature; // The heat that has settled on (been absorbed by) this node.
+	double moisture; // The moisture that has settled on (been absorbed by) this node.
+	double windStrength;
+	double normalizedWindStrength;
 	dvec3 windVector;
 
 	MapNode(dvec3 p, std::vector<int32> e = {}, std::vector<int32> f = {}) :
-		p(p), e(e), f(f), water(false), temperature(0.0F), moisture(0.0F), windVector(0.0F) {}
+		p(p), e(e), f(f), water(false), temperature(0.0), moisture(0.0), windStrength(0.0), windVector(0.0) {}
 
 	inline bool operator==(const MapNode& node) {
 		constexpr double eps = 1e-12;
