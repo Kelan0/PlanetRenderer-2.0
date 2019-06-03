@@ -33,6 +33,11 @@ MapGenerator::MapGenerator(Planet* planet, uint32 resolution) {
 	logInfo("Took %f ms to initialize node temperature", (b - a) / 1000000.0);
 
 	a = Time::now();
+	this->initializeMoisture();
+	b = Time::now();
+	logInfo("Took %f ms to initialize node moisture", (b - a) / 1000000.0);
+
+	a = Time::now();
 	this->generateDebugMeshes();
 	b = Time::now();
 	logInfo("Took %f ms to generate debug geometry", (b - a) / 1000000.0);
@@ -414,18 +419,19 @@ void MapGenerator::initializeHeat() {
 		double latContrib = 0.7;
 		double altContrib = 0.3;
 
-		n->heatAbsorbsion = 0.1 * n->area / glm::clamp(n->normalizedWindStrength, 0.1, 1.0);
+		n->heatAbsorbsion = 0.2 * n->area / glm::clamp(n->normalizedWindStrength, 0.1, 1.0);
 
 		if (n->water) {
 			altitudeTemperature *= 1.0 - glm::min(0.5F, abs(n->heightmapData.w));
 		}
 		else {
 			altitudeTemperature = glm::min(altitudeTemperature * 1.3, 1.0);
-			n->heatAbsorbsion *= 2.0;
+			n->heatAbsorbsion *= 1.5;
 		}
 
 		n->temperature = 0.0;
-		n->airHeat = latitudeTemperature * latContrib + altitudeTemperature * altContrib;
+		n->airHeat = n->area * (latitudeTemperature * latContrib + altitudeTemperature * altContrib);
+		n->nextHeat = 0.0;
 		totalHeat += n->airHeat;
 
 		activeNodes.push_back(n);
@@ -438,26 +444,20 @@ void MapGenerator::initializeHeat() {
 	do {
 		double consumedHeat = 0.0;
 	
-		double absorbsionRate = 0.1;
 		double lossRate = 0.02;
-	
-		double maxChange = 0.0;
-		double maxTemperature = 0.0;
 	
 		std::set<MapNode*> nextActiveNodes;
 		for (int i = 0; i < activeNodes.size(); i++) {
 			MapNode* n = activeNodes[i];
 	
-			//if (n->airHeat <= 0.0) {
-			//	continue;
-			//}
+			if (n->airHeat <= 0.0) {
+				continue;
+			}
 	
 			double change = glm::max(0.0, glm::min(n->airHeat, n->heatAbsorbsion * (1.0 - n->temperature / n->area)));
-			maxChange = glm::max(maxChange, change);
 			n->temperature += change;
-			maxTemperature = glm::max(maxTemperature, n->temperature);
 			consumedHeat += change;
-			change = glm::min(n->airHeat, change + (n->area * (n->temperature / n->area) * 0.02));
+			change = glm::min(n->airHeat, change + (n->area * (n->temperature / n->area) * lossRate));
 	
 			double movingHeat = n->airHeat - change;
 			n->airHeat = 0.0;
@@ -472,11 +472,13 @@ void MapGenerator::initializeHeat() {
 				}
 			}
 		}
+		remainingHeat -= consumedHeat;
 	
-		logInfo("max change %f, max temp %f, consumedHeat %f / %f, remainingHeat %f over %d active nodes, %d next active", maxChange, maxTemperature, consumedHeat, totalHeat, remainingHeat, activeNodes.size(), nextActiveNodes.size());
+		logInfo("consumedHeat %f / %f (%f%%), remainingHeat %f over %d active nodes, %d next active", 
+			consumedHeat / 1000.0, totalHeat / 1000.0, consumedHeat / totalHeat * 100.0, remainingHeat / 1000.0, activeNodes.size(), nextActiveNodes.size());
 	
 		activeNodes = std::vector<MapNode*>(nextActiveNodes.begin(), nextActiveNodes.end());
-	
+		
 		for (int i = 0; i < activeNodes.size(); i++) {
 			MapNode* n = activeNodes[i];
 			n->airHeat = n->nextHeat;
@@ -484,13 +486,105 @@ void MapGenerator::initializeHeat() {
 		}
 	
 		heatIterations++;
-		remainingHeat -= consumedHeat;
 		if (remainingHeat <= 0.0 || consumedHeat < 1e-5 || heatIterations > 25) {// || consumedHeat < 1e-5) {
 			break;
 		}
 	} while (true);
+
+	for (int i = 0; i < this->nodes.size(); i++) {
+		MapNode* n = this->nodes[i];
+		n->temperature = (n->temperature + n->airHeat) / n->area;
+	}
 	
 	logInfo("Simulated heat wind distribution in %d iterations", heatIterations);
+}
+
+void MapGenerator::initializeMoisture() {
+	double totalMoisture = 0.0;
+	std::vector<MapNode*> activeNodes;
+
+	for (int i = 0; i < this->nodes.size(); i++) {
+		MapNode* n = this->nodes[i];
+
+		n->moisture = 0.0;
+		n->nextMoisture = 0.0;
+		n->moistureAbsorbsion = (0.0075 * (1.0 + (1.0 - glm::clamp(n->temperature, 0.0, 1.0)))) * n->area / glm::clamp(n->normalizedWindStrength, 0.1, 1.0);
+
+		if (n->water) {
+			n->airMoisture = n->area * glm::clamp(0.5 + n->temperature * 0.5, 0.0, 1.0); // Hotter water evaporates more moisture.
+			n->maxMoisture = n->area * 0.25;
+		} else {
+			n->airMoisture = 0.0;
+			double h = glm::clamp(n->heightmapData.w, 0.0F, 1.0F);
+			n->maxMoisture = n->area * (h * 0.25 + 0.25);
+			n->moistureAbsorbsion *= 1.0 + h * 0.5; // Higher altitudes encourage more precipitation
+		}
+
+		totalMoisture += n->airMoisture;
+
+		activeNodes.push_back(n);
+	}
+
+	logInfo("Generated %f moisture for %d nodes", totalMoisture, activeNodes.size());
+
+	double remainingMoisture = totalMoisture;
+	int32 moistureIterations = 0;
+	do {
+		double consumedMoisture = 0.0;
+
+		double lossRate = 0.02;
+
+		std::set<MapNode*> nextActiveNodes;
+		for (int i = 0; i < activeNodes.size(); i++) {
+			MapNode* n = activeNodes[i];
+
+			if (n->airMoisture <= 0.0) {
+				continue;
+			}
+
+			double change = glm::max(0.0, glm::min(n->airMoisture, n->moistureAbsorbsion * (1.0 - n->moisture / n->maxMoisture)));
+			n->moisture += change;
+			consumedMoisture += change;
+			change = glm::min(n->airMoisture, change + (n->area * (n->moisture / n->maxMoisture) * lossRate));
+
+			double movingMoisture = n->airMoisture - change;
+			n->airMoisture = 0.0;
+
+			for (int j = 0; j < n->e.size(); j++) {
+				if (n->c[j] > 0.0) {
+					MapEdge* e = this->edges[n->e[j]];
+					MapNode* m = this->nodes[(n == this->nodes[e->n[0]]) ? e->n[1] : e->n[0]];
+
+					m->nextMoisture += movingMoisture * n->c[j];
+					nextActiveNodes.insert(m);
+				}
+			}
+		}
+		remainingMoisture -= consumedMoisture;
+
+		logInfo("consumedMoisture %f / %f (%f%%), remainingMoisture %f over %d active nodes, %d next active",
+			consumedMoisture / 1000.0, totalMoisture / 1000.0, consumedMoisture / totalMoisture * 100.0, remainingMoisture / 1000.0, activeNodes.size(), nextActiveNodes.size());
+
+		activeNodes = std::vector<MapNode*>(nextActiveNodes.begin(), nextActiveNodes.end());
+
+		for (int i = 0; i < activeNodes.size(); i++) {
+			MapNode* n = activeNodes[i];
+			n->airMoisture = n->nextMoisture;
+			n->nextMoisture = 0.0;
+		}
+
+		moistureIterations++;
+		if (remainingMoisture <= 0.0 || consumedMoisture < 1e-5 || moistureIterations > 100) {
+			break;
+		}
+	} while (true);
+
+	for (int i = 0; i < this->nodes.size(); i++) {
+		MapNode* n = this->nodes[i];
+		n->moisture = (n->moisture + n->airMoisture) / n->maxMoisture;
+	}
+
+	logInfo("Simulated moisture wind distribution in %d iterations", moistureIterations);
 }
 
 void MapGenerator::generateDebugMeshes() {
@@ -515,13 +609,14 @@ void MapGenerator::generateDebugMeshes() {
 	for (int i = 0; i < this->nodes.size(); i++) {
 		MapNode* n = this->nodes[i];
 
-		float f = n->temperature * (tgc - 1);
-		int32 i0 = glm::clamp<int32>(f - 1.0F, 0, tgc - 1);
-		int32 i1 = glm::clamp<int32>(f - 0.0F, 0, tgc - 1);
-		int32 i2 = glm::clamp<int32>(f + 1.0F, 0, tgc - 1);
-		int32 i3 = glm::clamp<int32>(f + 2.0F, 0, tgc - 1);
+		//float f = n->moisture * (tgc - 1);
+		//int32 i0 = glm::clamp<int32>(f - 1.0F, 0, tgc - 1);
+		//int32 i1 = glm::clamp<int32>(f - 0.0F, 0, tgc - 1);
+		//int32 i2 = glm::clamp<int32>(f + 1.0F, 0, tgc - 1);
+		//int32 i3 = glm::clamp<int32>(f + 2.0F, 0, tgc - 1);
 
-		fvec3 colour = glm::catmullRom(tg[i0], tg[i1], tg[i2], tg[i3], glm::fract(f));
+		//fvec3 colour = glm::catmullRom(tg[i0], tg[i1], tg[i2], tg[i3], glm::fract(f));
+		fvec3 colour = fvec3(n->temperature, n->moisture, 0.0);
 
 		surfaceVertices.push_back(Vertex(n->p * planet->getRadius(), fvec3(0.0), fvec2(0.0), colour));
 

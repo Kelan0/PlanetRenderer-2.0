@@ -41,10 +41,12 @@ private:
 
 	void initializeHeat();
 
+	void initializeMoisture();
+
 	void generateDebugMeshes();
 
 public:
-	MapGenerator(Planet* planet, uint32 resolution = 80);
+	MapGenerator(Planet* planet, uint32 resolution = 60);
 
 	~MapGenerator();
 
@@ -70,12 +72,18 @@ struct MapNode {
 	double area = 1.0;
 
 	bool water;
+
 	double heatAbsorbsion; // The amount of heat that this node can absorb, determined by air speed and if it is water.
 	double nextHeat; // The air heat for the next iteration
 	double airHeat; // The heat being moved around by wind
-	double airMoisture; // The moisture being moved around by wind
 	double temperature; // The heat that has settled on (been absorbed by) this node.
+
+	double maxMoisture;
+	double moistureAbsorbsion;
+	double nextMoisture; // The air moisture for the next iteration
+	double airMoisture; // The moisture being moved around by wind
 	double moisture; // The moisture that has settled on (been absorbed by) this node.
+
 	double windStrength;
 	double normalizedWindStrength;
 	dvec3 windVector;
