@@ -54,7 +54,7 @@ void main(void) {
     int i3 = int(clamp(f + 2.0, 0.0, float(tgc) - 1.0));
 	vec3 dataColour = catmullRom(tg[i0], tg[i1], tg[i2], tg[i3], fract(f));
     
-    outDiffuse = colour.rgb * dataColour;
+    outDiffuse = colour.rgb * fs_vertexColour.rgb;
 
     if (lightingEnabled) {
         float nDotL = max(0.2, dot(lightDir, fs_worldNormal));

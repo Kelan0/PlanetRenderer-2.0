@@ -15,6 +15,7 @@ struct MapCell;
 struct MapNode;
 struct MapEdge;
 struct MapFace;
+struct LifeZone;
 
 class MapGenerator
 {
@@ -32,6 +33,8 @@ private:
 	std::vector<MapEdge*> edges;
 	std::vector<MapFace*> faces;
 
+	std::vector<LifeZone*> lifeZones; // List of all lifezones.
+
 	bool renderDebugCurrents;
 	bool renderDebugSurface;
 
@@ -42,6 +45,8 @@ private:
 	void initializeHeat();
 
 	void initializeMoisture();
+
+	void initializeBiomes();
 
 	void generateDebugMeshes();
 
@@ -67,6 +72,8 @@ struct MapNode {
 	std::vector<int32> f; // The faces connected to this node.
 	std::vector<double> c; // The air current strengths to each connected node.
 
+	LifeZone* lifeZone;
+
 	fvec4 heightmapData;
 
 	double area = 1.0;
@@ -89,7 +96,7 @@ struct MapNode {
 	dvec3 windVector;
 
 	MapNode(dvec3 p, std::vector<int32> e = {}, std::vector<int32> f = {}) :
-		p(p), e(e), f(f), water(false), temperature(0.0), moisture(0.0), windStrength(0.0), windVector(0.0) {}
+		p(p), e(e), f(f), lifeZone(NULL), water(false), temperature(0.0), moisture(0.0), windStrength(0.0), windVector(0.0) {}
 
 	inline bool operator==(const MapNode& node) {
 		constexpr double eps = 1e-12;
@@ -144,3 +151,15 @@ struct MapFace {
 	}
 };
 
+struct LifeZone {
+	std::string name;
+	double minTemperature;
+	double maxTemperature;
+	double minMoisture;
+	double maxMoisture;
+
+	fvec3 colour;
+
+	LifeZone(std::string name, double minTemperature, double maxTemperature, double minMoisture, double maxMoisture, fvec3 colour) :
+		name(name), minTemperature(minTemperature), maxTemperature(maxTemperature), minMoisture(minMoisture), maxMoisture(maxMoisture), colour(colour) {}
+};

@@ -38,6 +38,11 @@ MapGenerator::MapGenerator(Planet* planet, uint32 resolution) {
 	logInfo("Took %f ms to initialize node moisture", (b - a) / 1000000.0);
 
 	a = Time::now();
+	this->initializeBiomes();
+	b = Time::now();
+	logInfo("Took %f ms to initialize node biomes", (b - a) / 1000000.0);
+
+	a = Time::now();
 	this->generateDebugMeshes();
 	b = Time::now();
 	logInfo("Took %f ms to generate debug geometry", (b - a) / 1000000.0);
@@ -587,6 +592,71 @@ void MapGenerator::initializeMoisture() {
 	logInfo("Simulated moisture wind distribution in %d iterations", moistureIterations);
 }
 
+void MapGenerator::initializeBiomes() {
+	this->lifeZones.push_back(new LifeZone("Tropical Desert",				5.0 / 6.0, 6.0 / 6.0, 0.0 / 8.0, 1.0 / 8.0, fvec3(1.0000000000000000, 1.0000000000000000, 0.5019607843137255))); // FFFF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Desert Scrub",			5.0 / 6.0, 6.0 / 6.0, 1.0 / 8.0, 2.0 / 8.0, fvec3(0.8784313725490196, 1.0000000000000000, 0.5019607843137255))); // E0FF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Thorn Woodland",		5.0 / 6.0, 6.0 / 6.0, 2.0 / 8.0, 3.0 / 8.0, fvec3(0.7529411764705882, 1.0000000000000000, 0.5019607843137255))); // C0FF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Very Dry Forest",		5.0 / 6.0, 6.0 / 6.0, 3.0 / 8.0, 4.0 / 8.0, fvec3(0.6274509803921569, 1.0000000000000000, 0.5019607843137255))); // A0FF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Dry Forest",			5.0 / 6.0, 6.0 / 6.0, 4.0 / 8.0, 5.0 / 8.0, fvec3(0.5019607843137255, 1.0000000000000000, 0.4019607843137255))); // 80FF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Moist Forest",			5.0 / 6.0, 6.0 / 6.0, 5.0 / 8.0, 6.0 / 8.0, fvec3(0.3764705882352941, 1.0000000000000000, 0.2519607843137255))); // 60FF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Wet Forest",			5.0 / 6.0, 6.0 / 6.0, 6.0 / 8.0, 7.0 / 8.0, fvec3(0.25098039215686274, 1.0000000000000000, 0.2747058823529412))); // 40FF90, 
+	this->lifeZones.push_back(new LifeZone("Tropical Rain Forest",			5.0 / 6.0, 6.0 / 6.0, 7.0 / 8.0, 8.0 / 8.0, fvec3(0.12549019607843137, 1.0000000000000000, 0.3174509803921569))); // 20FFA0, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Desert",			4.5 / 6.0, 5.0 / 6.0, 0.0 / 7.0, 1.0 / 7.0, fvec3(0.9411764705882353, 0.9411764705882353, 0.5019607843137255))); // F0F080, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Desert Scrub",		4.5 / 6.0, 5.0 / 6.0, 1.0 / 7.0, 2.0 / 7.0, fvec3(0.8156862745098039, 0.9411764705882353, 0.5019607843137255))); // D0F080, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Thorn Woodland",	4.5 / 6.0, 5.0 / 6.0, 2.0 / 7.0, 3.0 / 7.0, fvec3(0.7529411764705882, 1.0000000000000000, 0.5019607843137255))); // C0FF80, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Dry Forest",		4.5 / 6.0, 5.0 / 6.0, 3.0 / 7.0, 4.0 / 7.0, fvec3(0.5019607843137255, 0.9411764705882353, 0.5019607843137255))); // 80F080, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Moist Forest",		4.5 / 6.0, 5.0 / 6.0, 4.0 / 7.0, 5.0 / 7.0, fvec3(0.3764705882352941, 0.9411764705882353, 0.5019607843137255))); // 60F080, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Wet Forest",		4.5 / 6.0, 5.0 / 6.0, 5.0 / 7.0, 6.0 / 7.0, fvec3(0.25098039215686274, 0.9411764705882353, 0.5647058823529412))); // 40F090, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Rain Forest",		4.5 / 6.0, 5.0 / 6.0, 6.0 / 7.0, 7.0 / 7.0, fvec3(0.12549019607843137, 0.9411764705882353, 0.6901960784313725))); // 20F0B0, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Desert",			4.0 / 6.0, 4.5 / 6.0, 0.0 / 7.0, 1.0 / 7.0, fvec3(0.8784313725490196, 0.8784313725490196, 0.5019607843137255))); // E0E080, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Desert Scrub",	4.0 / 6.0, 4.5 / 6.0, 1.0 / 7.0, 2.0 / 7.0, fvec3(0.7529411764705882, 0.8784313725490196, 0.5019607843137255))); // C0E080, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Thorn Scrub",	4.0 / 6.0, 4.5 / 6.0, 2.0 / 7.0, 3.0 / 7.0, fvec3(0.5019607843137255, 0.8784313725490196, 0.5019607843137255))); // 80E080, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Dry Forest",		4.0 / 6.0, 4.5 / 6.0, 3.0 / 7.0, 4.0 / 7.0, fvec3(0.5019607843137255, 0.8784313725490196, 0.5019607843137255))); // 80e080, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Moist Forest",	4.0 / 6.0, 4.5 / 6.0, 4.0 / 7.0, 5.0 / 7.0, fvec3(0.3764705882352941, 0.8784313725490196, 0.5019607843137255))); // 60E080, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Wet Forest",		4.0 / 6.0, 4.5 / 6.0, 5.0 / 7.0, 6.0 / 7.0, fvec3(0.25098039215686274, 0.8784313725490196, 0.5647058823529412))); // 40e090, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Rain Forest",	4.0 / 6.0, 4.5 / 6.0, 6.0 / 7.0, 7.0 / 7.0, fvec3(0.12549019607843137, 0.8784313725490196, 0.7529411764705882))); // 20E0C0, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Desert",			3.0 / 6.0, 4.0 / 6.0, 0.0 / 6.0, 1.0 / 6.0, fvec3(0.7529411764705882, 0.7529411764705882, 0.5019607843137255))); // C0C080, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Desert Scrub",	3.0 / 6.0, 4.0 / 6.0, 1.0 / 6.0, 2.0 / 6.0, fvec3(0.6274509803921569, 0.7529411764705882, 0.5019607843137255))); // A0C080, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Steppe",			3.0 / 6.0, 4.0 / 6.0, 2.0 / 6.0, 3.0 / 6.0, fvec3(0.5019607843137255, 0.7529411764705882, 0.5019607843137255))); // 80C080, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Moist Forest",	3.0 / 6.0, 4.0 / 6.0, 3.0 / 6.0, 4.0 / 6.0, fvec3(0.3764705882352941, 0.7529411764705882, 0.5019607843137255))); // 60C080, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Wet Forest",		3.0 / 6.0, 4.0 / 6.0, 4.0 / 6.0, 5.0 / 6.0, fvec3(0.25098039215686274, 0.7529411764705882, 0.5647058823529412))); // 40C090, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Rain Forest",	3.0 / 6.0, 4.0 / 6.0, 5.0 / 6.0, 6.0 / 6.0, fvec3(0.12549019607843137, 0.7529411764705882, 0.7529411764705882))); // 20C0C0, 
+	this->lifeZones.push_back(new LifeZone("Boreal Desert",					2.0 / 6.0, 3.0 / 6.0, 0.0 / 5.0, 1.0 / 5.0, fvec3(0.6274509803921569, 0.6274509803921569, 0.5019607843137255))); // A0A080, 
+	this->lifeZones.push_back(new LifeZone("Boreal Dry Scrub",				2.0 / 6.0, 3.0 / 6.0, 1.0 / 5.0, 2.0 / 5.0, fvec3(0.5019607843137255, 0.6274509803921569, 0.5019607843137255))); // 80A080, 
+	this->lifeZones.push_back(new LifeZone("Boreal Moist Forest",			2.0 / 6.0, 3.0 / 6.0, 2.0 / 5.0, 3.0 / 5.0, fvec3(0.3764705882352941, 0.6274509803921569, 0.5019607843137255))); // 60A080, 
+	this->lifeZones.push_back(new LifeZone("Boreal Wet Forest",				2.0 / 6.0, 3.0 / 6.0, 3.0 / 5.0, 4.0 / 5.0, fvec3(0.25098039215686274, 0.6274509803921569, 0.5647058823529412))); // 40A090, 
+	this->lifeZones.push_back(new LifeZone("Boreal Rain Forest",			2.0 / 6.0, 3.0 / 6.0, 4.0 / 5.0, 5.0 / 5.0, fvec3(0.12549019607843137, 0.6274509803921569, 0.7529411764705882))); // 20A0C0, 
+	this->lifeZones.push_back(new LifeZone("Subpolar Dry Tundra",			1.0 / 6.0, 2.0 / 6.0, 0.0 / 4.0, 1.0 / 4.0, fvec3(0.5019607843137255, 0.5019607843137255, 0.5019607843137255))); // 808080, 
+	this->lifeZones.push_back(new LifeZone("Subpolar Moist Tundra",			1.0 / 6.0, 2.0 / 6.0, 1.0 / 4.0, 2.0 / 4.0, fvec3(0.3764705882352941, 0.5019607843137255, 0.5019607843137255))); // 608080, 
+	this->lifeZones.push_back(new LifeZone("Subpolar Wet Tundra",			1.0 / 6.0, 2.0 / 6.0, 2.0 / 4.0, 3.0 / 4.0, fvec3(0.25098039215686274, 0.5019607843137255, 0.5019607843137255))); // 408080, 
+	this->lifeZones.push_back(new LifeZone("Subpolar Rain Tundra",			1.0 / 6.0, 2.0 / 6.0, 3.0 / 4.0, 4.0 / 4.0, fvec3(0.12549019607843137, 0.5019607843137255, 0.7529411764705882))); // 2080C0, 
+	this->lifeZones.push_back(new LifeZone("Polar Desert",					0.0 / 6.0, 1.0 / 6.0, 0.0 / 3.0, 1.0 / 3.0, fvec3(0.7529411764705882, 0.7529411764705882, 0.7529411764705882))); // C0C0C0, 
+	this->lifeZones.push_back(new LifeZone("Polar Ice",						0.0 / 6.0, 1.0 / 6.0, 1.0 / 3.0, 2.0 / 3.0, fvec3(1.0000000000000000, 1.0000000000000000, 1.0000000000000000))); // FFFFFF, 
+	this->lifeZones.push_back(new LifeZone("Polar Ice",						0.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0, 3.0 / 3.0, fvec3(1.0000000000000000, 1.0000000000000000, 1.0000000000000000))); // FFFFFF, 
+
+	for (int i = 0; i < this->nodes.size(); i++) {
+		MapNode* n = this->nodes[i];
+
+		if (n->water) {
+			n->lifeZone = NULL;
+		} else {
+			double temperature = glm::clamp(n->temperature, 0.0, 1.0);
+			double moisture = glm::clamp(n->moisture, 0.0, 1.0);
+
+			for (int j = 0; j < this->lifeZones.size(); j++) {
+				LifeZone* zone = this->lifeZones[j];
+
+				if (temperature < zone->minTemperature) continue;
+				if (temperature >= zone->maxTemperature) continue;
+				if (moisture < zone->minMoisture) continue;
+				if (moisture >= zone->maxMoisture) continue;
+
+				n->lifeZone = zone;
+			}
+		}
+	}
+}
+
 void MapGenerator::generateDebugMeshes() {
 	std::vector<Vertex> surfaceVertices;
 	std::vector<Vertex> currentArrowVertices;
@@ -616,7 +686,7 @@ void MapGenerator::generateDebugMeshes() {
 		//int32 i3 = glm::clamp<int32>(f + 2.0F, 0, tgc - 1);
 
 		//fvec3 colour = glm::catmullRom(tg[i0], tg[i1], tg[i2], tg[i3], glm::fract(f));
-		fvec3 colour = fvec3(n->temperature, n->moisture, 0.0);
+		fvec3 colour = n->lifeZone != NULL ? n->lifeZone->colour : fvec3(0.2, 0.3, 0.9);// fvec3(n->temperature, n->moisture, 0.0);
 
 		surfaceVertices.push_back(Vertex(n->p * planet->getRadius(), fvec3(0.0), fvec2(0.0), colour));
 
