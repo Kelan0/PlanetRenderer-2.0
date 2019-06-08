@@ -60,5 +60,7 @@ public:
 	void finish();
 
 	void renderMesh(GLMesh* mesh);
+
+	ShaderProgram* getDebugShader() const;
 };
 

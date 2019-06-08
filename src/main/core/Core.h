@@ -14,6 +14,8 @@
 #include <filesystem>
 #include <unordered_map>
 #include <string>
+#include <thread>
+#include <mutex>
 #include <math.h>
 
 #define GLM_ENABLE_EXPERIMENTAL

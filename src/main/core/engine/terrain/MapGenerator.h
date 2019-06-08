@@ -28,6 +28,7 @@ private:
 	GLMesh* debugSurfaceLineMesh;
 	GLMesh* debugCurrentTriangleMesh;
 	GLMesh* debugCurrentLineMesh;
+	GLMesh* debugClosestWalkMesh;
 
 	std::vector<MapNode*> nodes;
 	std::vector<MapEdge*> edges;
@@ -35,8 +36,11 @@ private:
 
 	std::vector<LifeZone*> lifeZones; // List of all lifezones.
 
+	std::vector<int32> debugClosestWalk;
+
 	bool renderDebugCurrents;
 	bool renderDebugSurface;
+	int debugSurfaceRenderMode;
 
 	void generateIcosohedron();
 
@@ -51,11 +55,13 @@ private:
 	void generateDebugMeshes();
 
 public:
-	MapGenerator(Planet* planet, uint32 resolution = 60);
+	MapGenerator(Planet* planet, uint32 resolution = 100);
 
 	~MapGenerator();
 
 	void render(double partialTicks, double dt);
+
+	MapNode* getClosestMapNode(dvec3 point);
 
 	void setRenderDebugCurrents(bool renderDebugCurrents);
 
@@ -64,38 +70,42 @@ public:
 	void setRenderDebugSurface(bool renderDebugSurface);
 
 	bool doRenderDebugSurface() const;
+
+	void setDebugSurfaceRenderMode(int renderMode);
+
+	int getDebugSurfaceRenderMode() const;
 };
 
 struct MapNode {
-	dvec3 p; // The position of this node.
+	fvec3 p; // The position of this node.
 	std::vector<int32> e; // The edges connected to this node.
 	std::vector<int32> f; // The faces connected to this node.
-	std::vector<double> c; // The air current strengths to each connected node.
+	std::vector<float> c; // The air current strengths to each connected node.
 
 	LifeZone* lifeZone;
 
 	fvec4 heightmapData;
 
-	double area = 1.0;
+	float area = 1.0;
 
 	bool water;
 
-	double heatAbsorbsion; // The amount of heat that this node can absorb, determined by air speed and if it is water.
-	double nextHeat; // The air heat for the next iteration
-	double airHeat; // The heat being moved around by wind
-	double temperature; // The heat that has settled on (been absorbed by) this node.
+	float heatAbsorbsion; // The amount of heat that this node can absorb, determined by air speed and if it is water.
+	float nextHeat; // The air heat for the next iteration
+	float airHeat; // The heat being moved around by wind
+	float temperature; // The heat that has settled on (been absorbed by) this node.
 
-	double maxMoisture;
-	double moistureAbsorbsion;
-	double nextMoisture; // The air moisture for the next iteration
-	double airMoisture; // The moisture being moved around by wind
-	double moisture; // The moisture that has settled on (been absorbed by) this node.
+	float maxMoisture;
+	float moistureAbsorbsion;
+	float nextMoisture; // The air moisture for the next iteration
+	float airMoisture; // The moisture being moved around by wind
+	float moisture; // The moisture that has settled on (been absorbed by) this node.
 
-	double windStrength;
-	double normalizedWindStrength;
-	dvec3 windVector;
+	float windStrength;
+	float normalizedWindStrength;
+	fvec3 windVector;
 
-	MapNode(dvec3 p, std::vector<int32> e = {}, std::vector<int32> f = {}) :
+	MapNode(fvec3 p, std::vector<int32> e = {}, std::vector<int32> f = {}) :
 		p(p), e(e), f(f), lifeZone(NULL), water(false), temperature(0.0), moisture(0.0), windStrength(0.0), windVector(0.0) {}
 
 	inline bool operator==(const MapNode& node) {

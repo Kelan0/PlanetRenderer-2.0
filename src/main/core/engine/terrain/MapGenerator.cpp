@@ -2,6 +2,7 @@
 #include "core/application/Application.h"
 #include "core/engine/renderer/DebugRenderer.h"
 #include "core/engine/renderer/GLMesh.h"
+#include "core/engine/renderer/ShaderProgram.h"
 #include "core/engine/geometry/meshData.h"
 #include "core/engine/terrain/TileSupplier.h"
 #include "core/engine/terrain/Planet.h"
@@ -58,11 +59,10 @@ void MapGenerator::generateIcosohedron() {
 	const double b = 0.850650808352039932;
 	const double c = 0.0;
 
-
 	std::vector<MapNode*> icoNodes = {
-		new MapNode(dvec3(c, +b, +a)), new MapNode(dvec3(c, +b, -a)), new MapNode(dvec3(c, -b, +a)), new MapNode(dvec3(c, -b, -a)),
-		new MapNode(dvec3(+a, c, +b)), new MapNode(dvec3(-a, c, +b)), new MapNode(dvec3(+a, c, -b)), new MapNode(dvec3(-a, c, -b)),
-		new MapNode(dvec3(+b, +a, c)), new MapNode(dvec3(+b, -a, c)), new MapNode(dvec3(-b, +a, c)), new MapNode(dvec3(-b, -a, c)),
+		new MapNode(fvec3(c, +b, +a)), new MapNode(fvec3(c, +b, -a)), new MapNode(fvec3(c, -b, +a)), new MapNode(fvec3(c, -b, -a)),
+		new MapNode(fvec3(+a, c, +b)), new MapNode(fvec3(-a, c, +b)), new MapNode(fvec3(+a, c, -b)), new MapNode(fvec3(-a, c, -b)),
+		new MapNode(fvec3(+b, +a, c)), new MapNode(fvec3(+b, -a, c)), new MapNode(fvec3(-b, +a, c)), new MapNode(fvec3(-b, -a, c)),
 	};
 
 	std::vector<MapEdge*> icoEdges = {
@@ -162,11 +162,11 @@ void MapGenerator::generateIcosohedron() {
 		MapEdge* e0 = icoEdges[face->e[0]];
 		MapEdge* e1 = icoEdges[face->e[1]];
 		MapEdge* e2 = icoEdges[face->e[2]];
-		dvec3 p0 = icoNodes[face->n[0]]->p;
-		dvec3 p1 = icoNodes[face->n[1]]->p;
-		dvec3 p2 = icoNodes[face->n[2]]->p;
+		fvec3 p0 = icoNodes[face->n[0]]->p;
+		fvec3 p1 = icoNodes[face->n[1]]->p;
+		fvec3 p2 = icoNodes[face->n[2]]->p;
 
-		dvec3 d = p1 - p0;
+		fvec3 d = p1 - p0;
 
 
 		bool reverseEdge0, reverseEdge1, reverseEdge2;
@@ -189,11 +189,11 @@ void MapGenerator::generateIcosohedron() {
 
 		for (s = 1; s < this->resolution; s++) {
 			faceNodes.push_back(getEdgeNode2(s - 1));
-			dvec3 p0 = nodes[getEdgeNode2(s - 1)]->p;
-			dvec3 p1 = nodes[getEdgeNode1(s - 1)]->p;
+			fvec3 p0 = nodes[getEdgeNode2(s - 1)]->p;
+			fvec3 p1 = nodes[getEdgeNode1(s - 1)]->p;
 			for (t = 1; t < this->resolution - s; t++) {
 				faceNodes.push_back(nodes.size());
-				nodes.push_back(new MapNode(slerp(p0, p1, double(t) / (this->resolution - s))));
+				nodes.push_back(new MapNode(slerp(p0, p1, float(t) / (this->resolution - s))));
 			}
 			faceNodes.push_back(getEdgeNode1(s - 1));
 		}
@@ -330,9 +330,9 @@ void MapGenerator::generateIcosohedron() {
 
 void MapGenerator::generateAirCurrents() {
 	struct CircularCurrent {
-		dvec3 p;
-		double s;
-		double r;
+		fvec3 p;
+		float s;
+		float r;
 	};
 
 	const int32 currentCount = 60;
@@ -347,15 +347,15 @@ void MapGenerator::generateAirCurrents() {
 		currents[i] = c;
 	}
 
-	double maxWindStrength = 0.0;
+	float maxWindStrength = 0.0;
 
 	for (int i = 0; i < this->nodes.size(); i++) {
 		MapNode* n = this->nodes[i];
 
-		dvec3 w = dvec3(0.0);
+		fvec3 w = fvec3(0.0);
 
-		double outflow = 0.0;
-		double weight = 0.0;
+		float outflow = 0.0;
+		float weight = 0.0;
 
 		for (int j = 0; j < currentCount; j++) {
 			CircularCurrent c = currents[j];
@@ -363,9 +363,9 @@ void MapGenerator::generateAirCurrents() {
 			float angle = glm::angle(c.p, n->p);
 
 			if (angle < c.r) {
-				double dist = angle / c.r;
-				double weight = 1.0 - dist;
-				double strength = c.s * weight * dist;
+				float dist = angle / c.r;
+				float weight = 1.0 - dist;
+				float strength = c.s * weight * dist;
 				w += normalize(cross(c.p, n->p)) * strength;
 				weight += 1.0F;
 			}
@@ -376,7 +376,7 @@ void MapGenerator::generateAirCurrents() {
 		}
 
 		n->windStrength = length(w);
-		n->windVector = (n->windStrength > 1e-8) ? (w / n->windStrength) : dvec3(0.0);
+		n->windVector = (n->windStrength > 1e-8) ? (w / n->windStrength) : fvec3(0.0);
 
 		maxWindStrength = glm::max(maxWindStrength, n->windStrength);
 
@@ -385,8 +385,8 @@ void MapGenerator::generateAirCurrents() {
 			MapEdge* e = this->edges[n->e[j]];
 			MapNode* m = this->nodes[(n == this->nodes[e->n[0]]) ? e->n[1] : e->n[0]];
 
-			dvec3 v = normalize(m->p - n->p);
-			double d = dot(v, w);
+			fvec3 v = normalize(m->p - n->p);
+			float d = dot(v, w);
 
 			if (d > 0.0) {
 				n->c[j] = d;
@@ -412,24 +412,25 @@ void MapGenerator::generateAirCurrents() {
 
 void MapGenerator::initializeHeat() {
 
-	double totalHeat = 0.0;
+	float totalHeat = 0.0;
 	std::vector<MapNode*> activeNodes;
 
+	uint64 a, b;
+	a = Time::now();
 	for (int i = 0; i < this->nodes.size(); i++) {
 		MapNode* n = this->nodes[i];
 
-		double latitudeTemperature = 1.0 - abs(n->p.y);
-		double altitudeTemperature = 1.0 - glm::max(0.0F, n->heightmapData.w);
+		float latitudeTemperature = 1.0 - abs(n->p.y);
+		float altitudeTemperature = 1.0 - glm::max(0.0F, n->heightmapData.w);
 
-		double latContrib = 0.7;
-		double altContrib = 0.3;
+		float latContrib = 0.7 * (latitudeTemperature * 0.23 + 0.77);
+		float altContrib = 1.0 - latContrib;
 
-		n->heatAbsorbsion = 0.2 * n->area / glm::clamp(n->normalizedWindStrength, 0.1, 1.0);
+		n->heatAbsorbsion = 0.08F * n->area / glm::clamp(n->normalizedWindStrength, 0.1F, 1.0F);
 
 		if (n->water) {
-			altitudeTemperature *= 1.0 - glm::min(0.5F, abs(n->heightmapData.w));
-		}
-		else {
+			altitudeTemperature *= 1.0 - glm::min(0.9F, abs(n->heightmapData.w));
+		} else {
 			altitudeTemperature = glm::min(altitudeTemperature * 1.3, 1.0);
 			n->heatAbsorbsion *= 1.5;
 		}
@@ -441,46 +442,91 @@ void MapGenerator::initializeHeat() {
 
 		activeNodes.push_back(n);
 	}
+	b = Time::now();
 
-	logInfo("Generated %f heat for %d nodes", totalHeat, activeNodes.size());
+	logInfo("Generated %f heat for %d nodes in %f ms", totalHeat, activeNodes.size(), (b - a) / 1000000.0);
 
-	double remainingHeat = totalHeat;
+	// 6400 ms single threaded
+
+	float remainingHeat = totalHeat;
 	int32 heatIterations = 0;
 	do {
-		double consumedHeat = 0.0;
-	
-		double lossRate = 0.02;
-	
-		std::set<MapNode*> nextActiveNodes;
-		for (int i = 0; i < activeNodes.size(); i++) {
-			MapNode* n = activeNodes[i];
-	
-			if (n->airHeat <= 0.0) {
-				continue;
-			}
-	
-			double change = glm::max(0.0, glm::min(n->airHeat, n->heatAbsorbsion * (1.0 - n->temperature / n->area)));
-			n->temperature += change;
-			consumedHeat += change;
-			change = glm::min(n->airHeat, change + (n->area * (n->temperature / n->area) * lossRate));
-	
-			double movingHeat = n->airHeat - change;
-			n->airHeat = 0.0;
-	
-			for (int j = 0; j < n->e.size(); j++) {
-				if (n->c[j] > 0.0) {
-					MapEdge* e = this->edges[n->e[j]];
-					MapNode* m = this->nodes[(n == this->nodes[e->n[0]]) ? e->n[1] : e->n[0]];
-	
-					m->nextHeat += movingHeat * n->c[j];
-					nextActiveNodes.insert(m);
+		float consumedHeat = 0.0;
+		float lossRate = 0.02;
+
+		const int count = activeNodes.size();
+		const int workerCount = glm::min(count, 8);
+
+		std::vector<MapNode*> nextActiveNodes;
+		nextActiveNodes.reserve(count);
+
+		uint64 timeLocked = 0;
+
+		std::mutex lock;
+		std::thread workers[8];
+
+		for (int threadId = 0; threadId < workerCount; threadId++) {
+			workers[threadId] = std::thread([&](int threadId) {
+				int workerSize = (int)glm::ceil(count / 8.0);
+				int startIndex = glm::min(workerSize * (threadId + 0), count);
+				int endIndex = glm::min(workerSize * (threadId + 1), count);
+
+				std::vector<MapNode*> localNextActiveNodes;
+				localNextActiveNodes.reserve(workerSize);
+
+				float localConsumedHeat = 0.0;
+
+				for (int i = startIndex; i < endIndex; i++) {
+					MapNode* n = activeNodes[i];
+
+					if (n->airHeat <= 0.0) {
+						continue;
+					}
+
+					float change = glm::max(0.0F, glm::min(n->airHeat, n->heatAbsorbsion * (1.0F - n->temperature / n->area)));
+					n->temperature += change;
+					localConsumedHeat += change;
+					change = glm::min(n->airHeat, change + (n->area * (n->temperature / n->area) * lossRate));
+
+					float movingHeat = n->airHeat - change;
+					n->airHeat = 0.0;
+
+					for (int j = 0; j < n->e.size(); j++) {
+						if (n->c[j] > 0.0) {
+							MapEdge* e = this->edges[n->e[j]];
+							MapNode* m = this->nodes[(n == this->nodes[e->n[0]]) ? e->n[1] : e->n[0]];
+
+							m->nextHeat += movingHeat * n->c[j];
+							localNextActiveNodes.push_back(m);
+						}
+					}
 				}
-			}
+
+				std::sort(localNextActiveNodes.begin(), localNextActiveNodes.end());
+				localNextActiveNodes.erase(std::unique(localNextActiveNodes.begin(), localNextActiveNodes.end()), localNextActiveNodes.end());
+
+				uint64 a0 = Time::now();
+				lock.lock();
+				consumedHeat += localConsumedHeat;
+				nextActiveNodes.insert(nextActiveNodes.end(), localNextActiveNodes.begin(), localNextActiveNodes.end());
+				uint64 b0 = Time::now();
+
+				timeLocked += b0 - a0;
+				lock.unlock();
+			}, threadId);
 		}
+
+		for (int threadId = 0; threadId < workerCount; threadId++) {
+			workers[threadId].join();
+		}
+
+		std::sort(nextActiveNodes.begin(), nextActiveNodes.end());
+		nextActiveNodes.erase(std::unique(nextActiveNodes.begin(), nextActiveNodes.end()), nextActiveNodes.end());
+
 		remainingHeat -= consumedHeat;
 	
-		logInfo("consumedHeat %f / %f (%f%%), remainingHeat %f over %d active nodes, %d next active", 
-			consumedHeat / 1000.0, totalHeat / 1000.0, consumedHeat / totalHeat * 100.0, remainingHeat / 1000.0, activeNodes.size(), nextActiveNodes.size());
+		logInfo("consumedHeat %f / %f (%f%%), remainingHeat %f over %d active nodes, %d next active, spent %f ms locked", 
+			consumedHeat / 1000.0, totalHeat / 1000.0, consumedHeat / totalHeat * 100.0, remainingHeat / 1000.0, activeNodes.size(), nextActiveNodes.size(), timeLocked / 1000000.0);
 	
 		activeNodes = std::vector<MapNode*>(nextActiveNodes.begin(), nextActiveNodes.end());
 		
@@ -505,22 +551,25 @@ void MapGenerator::initializeHeat() {
 }
 
 void MapGenerator::initializeMoisture() {
-	double totalMoisture = 0.0;
+	float totalMoisture = 0.0;
 	std::vector<MapNode*> activeNodes;
 
+	uint64 a, b;
+
+	a = Time::now();
 	for (int i = 0; i < this->nodes.size(); i++) {
 		MapNode* n = this->nodes[i];
 
 		n->moisture = 0.0;
 		n->nextMoisture = 0.0;
-		n->moistureAbsorbsion = (0.0075 * (1.0 + (1.0 - glm::clamp(n->temperature, 0.0, 1.0)))) * n->area / glm::clamp(n->normalizedWindStrength, 0.1, 1.0);
+		n->moistureAbsorbsion = (0.0058F * (1.0F + (1.0F - glm::clamp(n->temperature, 0.0F, 1.0F)))) * n->area / glm::clamp(n->normalizedWindStrength, 0.1F, 1.0F);
 
 		if (n->water) {
 			n->airMoisture = n->area * glm::clamp(0.5 + n->temperature * 0.5, 0.0, 1.0); // Hotter water evaporates more moisture.
 			n->maxMoisture = n->area * 0.25;
 		} else {
 			n->airMoisture = 0.0;
-			double h = glm::clamp(n->heightmapData.w, 0.0F, 1.0F);
+			float h = glm::clamp(n->heightmapData.w, 0.0F, 1.0F);
 			n->maxMoisture = n->area * (h * 0.25 + 0.25);
 			n->moistureAbsorbsion *= 1.0 + h * 0.5; // Higher altitudes encourage more precipitation
 		}
@@ -529,48 +578,95 @@ void MapGenerator::initializeMoisture() {
 
 		activeNodes.push_back(n);
 	}
+	b = Time::now();
 
-	logInfo("Generated %f moisture for %d nodes", totalMoisture, activeNodes.size());
+	logInfo("Generated %f moisture for %d nodes in %f ms", totalMoisture, activeNodes.size(), (b - a) / 1000000.0);
 
-	double remainingMoisture = totalMoisture;
+	float remainingMoisture = totalMoisture;
 	int32 moistureIterations = 0;
+
+
+	// Single threaded, 13,000 ms in 99 iterations
+	// Multithreaded, 2,500 ms in 99 iterations
 	do {
-		double consumedMoisture = 0.0;
+		float consumedMoisture = 0.0;
+		float lossRate = 0.02;
 
-		double lossRate = 0.02;
+		const int count = activeNodes.size();
+		const int workerCount = glm::min(count, 8);
 
-		std::set<MapNode*> nextActiveNodes;
-		for (int i = 0; i < activeNodes.size(); i++) {
-			MapNode* n = activeNodes[i];
+		std::vector<MapNode*> nextActiveNodes;
+		nextActiveNodes.reserve(count);
 
-			if (n->airMoisture <= 0.0) {
-				continue;
-			}
+		uint64 timeLocked = 0;
 
-			double change = glm::max(0.0, glm::min(n->airMoisture, n->moistureAbsorbsion * (1.0 - n->moisture / n->maxMoisture)));
-			n->moisture += change;
-			consumedMoisture += change;
-			change = glm::min(n->airMoisture, change + (n->area * (n->moisture / n->maxMoisture) * lossRate));
+		std::mutex lock;
+		std::thread workers[8];
 
-			double movingMoisture = n->airMoisture - change;
-			n->airMoisture = 0.0;
+		for (int threadId = 0; threadId < workerCount; threadId++) {
+			workers[threadId] = std::thread([&](int threadId) {
+				int workerSize = (int)glm::ceil(count / 8.0);
+				int startIndex = glm::min(workerSize * (threadId + 0), count);
+				int endIndex = glm::min(workerSize * (threadId + 1), count);
 
-			for (int j = 0; j < n->e.size(); j++) {
-				if (n->c[j] > 0.0) {
-					MapEdge* e = this->edges[n->e[j]];
-					MapNode* m = this->nodes[(n == this->nodes[e->n[0]]) ? e->n[1] : e->n[0]];
+				std::vector<MapNode*> localNextActiveNodes;
+				localNextActiveNodes.reserve(workerSize);
 
-					m->nextMoisture += movingMoisture * n->c[j];
-					nextActiveNodes.insert(m);
+				float localConsumedMoisture = 0.0;
+
+				for (int i = startIndex; i < endIndex; i++) {
+					MapNode* n = activeNodes[i];
+
+					if (n->airMoisture <= 0.0) {
+						continue;
+					}
+
+					float change = glm::max(0.0F, glm::min(n->airMoisture, n->moistureAbsorbsion * (1.0F - n->moisture / n->maxMoisture)));
+					n->moisture += change;
+					localConsumedMoisture += change;
+					change = glm::min(n->airMoisture, change + (n->area * (n->moisture / n->maxMoisture) * lossRate));
+
+					float movingMoisture = n->airMoisture - change;
+					n->airMoisture = 0.0;
+
+					for (int j = 0; j < n->e.size(); j++) {
+						if (n->c[j] > 0.0) {
+							MapEdge* e = this->edges[n->e[j]];
+							MapNode* m = this->nodes[(n == this->nodes[e->n[0]]) ? e->n[1] : e->n[0]];
+
+							m->nextMoisture += movingMoisture * n->c[j];
+							localNextActiveNodes.push_back(m);
+						}
+					}
 				}
-			}
+
+				std::sort(localNextActiveNodes.begin(), localNextActiveNodes.end());
+				localNextActiveNodes.erase(std::unique(localNextActiveNodes.begin(), localNextActiveNodes.end()), localNextActiveNodes.end());
+				
+				uint64 a0 = Time::now();
+				lock.lock();
+				consumedMoisture += localConsumedMoisture;
+				nextActiveNodes.insert(nextActiveNodes.end(), localNextActiveNodes.begin(), localNextActiveNodes.end());
+				uint64 b0 = Time::now();
+
+				timeLocked += b0 - a0;
+				lock.unlock();
+			}, threadId);
 		}
+
+		for (int threadId = 0; threadId < workerCount; threadId++) {
+			workers[threadId].join();
+		}
+
 		remainingMoisture -= consumedMoisture;
 
-		logInfo("consumedMoisture %f / %f (%f%%), remainingMoisture %f over %d active nodes, %d next active",
-			consumedMoisture / 1000.0, totalMoisture / 1000.0, consumedMoisture / totalMoisture * 100.0, remainingMoisture / 1000.0, activeNodes.size(), nextActiveNodes.size());
+		logInfo("consumedMoisture %f / %f (%f%%), remainingMoisture %f over %d active nodes, %d next active, spent %f ms locked",
+			consumedMoisture / 1000.0, totalMoisture / 1000.0, consumedMoisture / totalMoisture * 100.0, remainingMoisture / 1000.0, activeNodes.size(), nextActiveNodes.size(), timeLocked / 1000000.0);
 
-		activeNodes = std::vector<MapNode*>(nextActiveNodes.begin(), nextActiveNodes.end());
+		std::sort(nextActiveNodes.begin(), nextActiveNodes.end());
+		nextActiveNodes.erase(std::unique(nextActiveNodes.begin(), nextActiveNodes.end()), nextActiveNodes.end());
+
+		activeNodes = nextActiveNodes;// std::vector<MapNode*>(nextActiveNodes.begin(), nextActiveNodes.end());
 
 		for (int i = 0; i < activeNodes.size(); i++) {
 			MapNode* n = activeNodes[i];
@@ -579,7 +675,7 @@ void MapGenerator::initializeMoisture() {
 		}
 
 		moistureIterations++;
-		if (remainingMoisture <= 0.0 || consumedMoisture < 1e-5 || moistureIterations > 100) {
+		if (remainingMoisture <= 0.0 || consumedMoisture < 1e-5 || moistureIterations > 200) {
 			break;
 		}
 	} while (true);
@@ -593,63 +689,73 @@ void MapGenerator::initializeMoisture() {
 }
 
 void MapGenerator::initializeBiomes() {
-	this->lifeZones.push_back(new LifeZone("Tropical Desert",				5.0 / 6.0, 6.0 / 6.0, 0.0 / 8.0, 1.0 / 8.0, fvec3(1.0000000000000000, 1.0000000000000000, 0.5019607843137255))); // FFFF80, 
-	this->lifeZones.push_back(new LifeZone("Tropical Desert Scrub",			5.0 / 6.0, 6.0 / 6.0, 1.0 / 8.0, 2.0 / 8.0, fvec3(0.8784313725490196, 1.0000000000000000, 0.5019607843137255))); // E0FF80, 
-	this->lifeZones.push_back(new LifeZone("Tropical Thorn Woodland",		5.0 / 6.0, 6.0 / 6.0, 2.0 / 8.0, 3.0 / 8.0, fvec3(0.7529411764705882, 1.0000000000000000, 0.5019607843137255))); // C0FF80, 
-	this->lifeZones.push_back(new LifeZone("Tropical Very Dry Forest",		5.0 / 6.0, 6.0 / 6.0, 3.0 / 8.0, 4.0 / 8.0, fvec3(0.6274509803921569, 1.0000000000000000, 0.5019607843137255))); // A0FF80, 
-	this->lifeZones.push_back(new LifeZone("Tropical Dry Forest",			5.0 / 6.0, 6.0 / 6.0, 4.0 / 8.0, 5.0 / 8.0, fvec3(0.5019607843137255, 1.0000000000000000, 0.4019607843137255))); // 80FF80, 
-	this->lifeZones.push_back(new LifeZone("Tropical Moist Forest",			5.0 / 6.0, 6.0 / 6.0, 5.0 / 8.0, 6.0 / 8.0, fvec3(0.3764705882352941, 1.0000000000000000, 0.2519607843137255))); // 60FF80, 
-	this->lifeZones.push_back(new LifeZone("Tropical Wet Forest",			5.0 / 6.0, 6.0 / 6.0, 6.0 / 8.0, 7.0 / 8.0, fvec3(0.25098039215686274, 1.0000000000000000, 0.2747058823529412))); // 40FF90, 
-	this->lifeZones.push_back(new LifeZone("Tropical Rain Forest",			5.0 / 6.0, 6.0 / 6.0, 7.0 / 8.0, 8.0 / 8.0, fvec3(0.12549019607843137, 1.0000000000000000, 0.3174509803921569))); // 20FFA0, 
-	this->lifeZones.push_back(new LifeZone("Subtropical Desert",			4.5 / 6.0, 5.0 / 6.0, 0.0 / 7.0, 1.0 / 7.0, fvec3(0.9411764705882353, 0.9411764705882353, 0.5019607843137255))); // F0F080, 
-	this->lifeZones.push_back(new LifeZone("Subtropical Desert Scrub",		4.5 / 6.0, 5.0 / 6.0, 1.0 / 7.0, 2.0 / 7.0, fvec3(0.8156862745098039, 0.9411764705882353, 0.5019607843137255))); // D0F080, 
-	this->lifeZones.push_back(new LifeZone("Subtropical Thorn Woodland",	4.5 / 6.0, 5.0 / 6.0, 2.0 / 7.0, 3.0 / 7.0, fvec3(0.7529411764705882, 1.0000000000000000, 0.5019607843137255))); // C0FF80, 
-	this->lifeZones.push_back(new LifeZone("Subtropical Dry Forest",		4.5 / 6.0, 5.0 / 6.0, 3.0 / 7.0, 4.0 / 7.0, fvec3(0.5019607843137255, 0.9411764705882353, 0.5019607843137255))); // 80F080, 
-	this->lifeZones.push_back(new LifeZone("Subtropical Moist Forest",		4.5 / 6.0, 5.0 / 6.0, 4.0 / 7.0, 5.0 / 7.0, fvec3(0.3764705882352941, 0.9411764705882353, 0.5019607843137255))); // 60F080, 
-	this->lifeZones.push_back(new LifeZone("Subtropical Wet Forest",		4.5 / 6.0, 5.0 / 6.0, 5.0 / 7.0, 6.0 / 7.0, fvec3(0.25098039215686274, 0.9411764705882353, 0.5647058823529412))); // 40F090, 
-	this->lifeZones.push_back(new LifeZone("Subtropical Rain Forest",		4.5 / 6.0, 5.0 / 6.0, 6.0 / 7.0, 7.0 / 7.0, fvec3(0.12549019607843137, 0.9411764705882353, 0.6901960784313725))); // 20F0B0, 
-	this->lifeZones.push_back(new LifeZone("Warm Temperate Desert",			4.0 / 6.0, 4.5 / 6.0, 0.0 / 7.0, 1.0 / 7.0, fvec3(0.8784313725490196, 0.8784313725490196, 0.5019607843137255))); // E0E080, 
-	this->lifeZones.push_back(new LifeZone("Warm Temperate Desert Scrub",	4.0 / 6.0, 4.5 / 6.0, 1.0 / 7.0, 2.0 / 7.0, fvec3(0.7529411764705882, 0.8784313725490196, 0.5019607843137255))); // C0E080, 
-	this->lifeZones.push_back(new LifeZone("Warm Temperate Thorn Scrub",	4.0 / 6.0, 4.5 / 6.0, 2.0 / 7.0, 3.0 / 7.0, fvec3(0.5019607843137255, 0.8784313725490196, 0.5019607843137255))); // 80E080, 
-	this->lifeZones.push_back(new LifeZone("Warm Temperate Dry Forest",		4.0 / 6.0, 4.5 / 6.0, 3.0 / 7.0, 4.0 / 7.0, fvec3(0.5019607843137255, 0.8784313725490196, 0.5019607843137255))); // 80e080, 
-	this->lifeZones.push_back(new LifeZone("Warm Temperate Moist Forest",	4.0 / 6.0, 4.5 / 6.0, 4.0 / 7.0, 5.0 / 7.0, fvec3(0.3764705882352941, 0.8784313725490196, 0.5019607843137255))); // 60E080, 
-	this->lifeZones.push_back(new LifeZone("Warm Temperate Wet Forest",		4.0 / 6.0, 4.5 / 6.0, 5.0 / 7.0, 6.0 / 7.0, fvec3(0.25098039215686274, 0.8784313725490196, 0.5647058823529412))); // 40e090, 
-	this->lifeZones.push_back(new LifeZone("Warm Temperate Rain Forest",	4.0 / 6.0, 4.5 / 6.0, 6.0 / 7.0, 7.0 / 7.0, fvec3(0.12549019607843137, 0.8784313725490196, 0.7529411764705882))); // 20E0C0, 
-	this->lifeZones.push_back(new LifeZone("Cool Temperate Desert",			3.0 / 6.0, 4.0 / 6.0, 0.0 / 6.0, 1.0 / 6.0, fvec3(0.7529411764705882, 0.7529411764705882, 0.5019607843137255))); // C0C080, 
-	this->lifeZones.push_back(new LifeZone("Cool Temperate Desert Scrub",	3.0 / 6.0, 4.0 / 6.0, 1.0 / 6.0, 2.0 / 6.0, fvec3(0.6274509803921569, 0.7529411764705882, 0.5019607843137255))); // A0C080, 
-	this->lifeZones.push_back(new LifeZone("Cool Temperate Steppe",			3.0 / 6.0, 4.0 / 6.0, 2.0 / 6.0, 3.0 / 6.0, fvec3(0.5019607843137255, 0.7529411764705882, 0.5019607843137255))); // 80C080, 
-	this->lifeZones.push_back(new LifeZone("Cool Temperate Moist Forest",	3.0 / 6.0, 4.0 / 6.0, 3.0 / 6.0, 4.0 / 6.0, fvec3(0.3764705882352941, 0.7529411764705882, 0.5019607843137255))); // 60C080, 
-	this->lifeZones.push_back(new LifeZone("Cool Temperate Wet Forest",		3.0 / 6.0, 4.0 / 6.0, 4.0 / 6.0, 5.0 / 6.0, fvec3(0.25098039215686274, 0.7529411764705882, 0.5647058823529412))); // 40C090, 
-	this->lifeZones.push_back(new LifeZone("Cool Temperate Rain Forest",	3.0 / 6.0, 4.0 / 6.0, 5.0 / 6.0, 6.0 / 6.0, fvec3(0.12549019607843137, 0.7529411764705882, 0.7529411764705882))); // 20C0C0, 
-	this->lifeZones.push_back(new LifeZone("Boreal Desert",					2.0 / 6.0, 3.0 / 6.0, 0.0 / 5.0, 1.0 / 5.0, fvec3(0.6274509803921569, 0.6274509803921569, 0.5019607843137255))); // A0A080, 
-	this->lifeZones.push_back(new LifeZone("Boreal Dry Scrub",				2.0 / 6.0, 3.0 / 6.0, 1.0 / 5.0, 2.0 / 5.0, fvec3(0.5019607843137255, 0.6274509803921569, 0.5019607843137255))); // 80A080, 
-	this->lifeZones.push_back(new LifeZone("Boreal Moist Forest",			2.0 / 6.0, 3.0 / 6.0, 2.0 / 5.0, 3.0 / 5.0, fvec3(0.3764705882352941, 0.6274509803921569, 0.5019607843137255))); // 60A080, 
-	this->lifeZones.push_back(new LifeZone("Boreal Wet Forest",				2.0 / 6.0, 3.0 / 6.0, 3.0 / 5.0, 4.0 / 5.0, fvec3(0.25098039215686274, 0.6274509803921569, 0.5647058823529412))); // 40A090, 
-	this->lifeZones.push_back(new LifeZone("Boreal Rain Forest",			2.0 / 6.0, 3.0 / 6.0, 4.0 / 5.0, 5.0 / 5.0, fvec3(0.12549019607843137, 0.6274509803921569, 0.7529411764705882))); // 20A0C0, 
-	this->lifeZones.push_back(new LifeZone("Subpolar Dry Tundra",			1.0 / 6.0, 2.0 / 6.0, 0.0 / 4.0, 1.0 / 4.0, fvec3(0.5019607843137255, 0.5019607843137255, 0.5019607843137255))); // 808080, 
-	this->lifeZones.push_back(new LifeZone("Subpolar Moist Tundra",			1.0 / 6.0, 2.0 / 6.0, 1.0 / 4.0, 2.0 / 4.0, fvec3(0.3764705882352941, 0.5019607843137255, 0.5019607843137255))); // 608080, 
-	this->lifeZones.push_back(new LifeZone("Subpolar Wet Tundra",			1.0 / 6.0, 2.0 / 6.0, 2.0 / 4.0, 3.0 / 4.0, fvec3(0.25098039215686274, 0.5019607843137255, 0.5019607843137255))); // 408080, 
-	this->lifeZones.push_back(new LifeZone("Subpolar Rain Tundra",			1.0 / 6.0, 2.0 / 6.0, 3.0 / 4.0, 4.0 / 4.0, fvec3(0.12549019607843137, 0.5019607843137255, 0.7529411764705882))); // 2080C0, 
-	this->lifeZones.push_back(new LifeZone("Polar Desert",					0.0 / 6.0, 1.0 / 6.0, 0.0 / 3.0, 1.0 / 3.0, fvec3(0.7529411764705882, 0.7529411764705882, 0.7529411764705882))); // C0C0C0, 
-	this->lifeZones.push_back(new LifeZone("Polar Ice",						0.0 / 6.0, 1.0 / 6.0, 1.0 / 3.0, 2.0 / 3.0, fvec3(1.0000000000000000, 1.0000000000000000, 1.0000000000000000))); // FFFFFF, 
-	this->lifeZones.push_back(new LifeZone("Polar Ice",						0.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0, 3.0 / 3.0, fvec3(1.0000000000000000, 1.0000000000000000, 1.0000000000000000))); // FFFFFF, 
+	this->lifeZones.push_back(new LifeZone("Tropical Desert",				5.0 / 6.0, 6.0 / 6.0, 0.0 / 8.0, 1.0 / 8.0, fvec3(1.000, 1.000, 0.502))); // FFFF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Desert Scrub",			5.0 / 6.0, 6.0 / 6.0, 1.0 / 8.0, 2.0 / 8.0, fvec3(0.878, 1.000, 0.502))); // E0FF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Thorn Woodland",		5.0 / 6.0, 6.0 / 6.0, 2.0 / 8.0, 3.0 / 8.0, fvec3(0.753, 1.000, 0.502))); // C0FF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Very Dry Forest",		5.0 / 6.0, 6.0 / 6.0, 3.0 / 8.0, 4.0 / 8.0, fvec3(0.627, 1.000, 0.502))); // A0FF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Dry Forest",			5.0 / 6.0, 6.0 / 6.0, 4.0 / 8.0, 5.0 / 8.0, fvec3(0.502, 1.000, 0.402))); // 80FF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Moist Forest",			5.0 / 6.0, 6.0 / 6.0, 5.0 / 8.0, 6.0 / 8.0, fvec3(0.376, 1.000, 0.252))); // 60FF80, 
+	this->lifeZones.push_back(new LifeZone("Tropical Wet Forest",			5.0 / 6.0, 6.0 / 6.0, 6.0 / 8.0, 7.0 / 8.0, fvec3(0.251, 1.000, 0.275))); // 40FF90, 
+	this->lifeZones.push_back(new LifeZone("Tropical Rain Forest",			5.0 / 6.0, 6.0 / 6.0, 7.0 / 8.0, 8.0 / 8.0, fvec3(0.125, 1.000, 0.317))); // 20FFA0, 
+
+	this->lifeZones.push_back(new LifeZone("Subtropical Desert",			4.5 / 6.0, 5.0 / 6.0, 0.0 / 7.0, 1.0 / 7.0, fvec3(0.941, 0.941, 0.502))); // F0F080, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Desert Scrub",		4.5 / 6.0, 5.0 / 6.0, 1.0 / 7.0, 2.0 / 7.0, fvec3(0.816, 0.941, 0.502))); // D0F080, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Thorn Woodland",	4.5 / 6.0, 5.0 / 6.0, 2.0 / 7.0, 3.0 / 7.0, fvec3(0.753, 1.000, 0.502))); // C0FF80, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Dry Forest",		4.5 / 6.0, 5.0 / 6.0, 3.0 / 7.0, 4.0 / 7.0, fvec3(0.502, 0.941, 0.502))); // 80F080, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Moist Forest",		4.5 / 6.0, 5.0 / 6.0, 4.0 / 7.0, 5.0 / 7.0, fvec3(0.376, 0.941, 0.502))); // 60F080, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Wet Forest",		4.5 / 6.0, 5.0 / 6.0, 5.0 / 7.0, 6.0 / 7.0, fvec3(0.251, 0.941, 0.565))); // 40F090, 
+	this->lifeZones.push_back(new LifeZone("Subtropical Rain Forest",		4.5 / 6.0, 5.0 / 6.0, 6.0 / 7.0, 7.0 / 7.0, fvec3(0.125, 0.941, 0.690))); // 20F0B0, 
+
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Desert",			4.0 / 6.0, 4.5 / 6.0, 0.0 / 7.0, 1.0 / 7.0, fvec3(0.878, 0.878, 0.502))); // E0E080, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Desert Scrub",	4.0 / 6.0, 4.5 / 6.0, 1.0 / 7.0, 2.0 / 7.0, fvec3(0.753, 0.878, 0.502))); // C0E080, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Thorn Scrub",	4.0 / 6.0, 4.5 / 6.0, 2.0 / 7.0, 3.0 / 7.0, fvec3(0.502, 0.878, 0.502))); // 80E080, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Dry Forest",		4.0 / 6.0, 4.5 / 6.0, 3.0 / 7.0, 4.0 / 7.0, fvec3(0.502, 0.878, 0.502))); // 80e080, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Moist Forest",	4.0 / 6.0, 4.5 / 6.0, 4.0 / 7.0, 5.0 / 7.0, fvec3(0.376, 0.878, 0.502))); // 60E080, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Wet Forest",		4.0 / 6.0, 4.5 / 6.0, 5.0 / 7.0, 6.0 / 7.0, fvec3(0.251, 0.878, 0.565))); // 40e090, 
+	this->lifeZones.push_back(new LifeZone("Warm Temperate Rain Forest",	4.0 / 6.0, 4.5 / 6.0, 6.0 / 7.0, 7.0 / 7.0, fvec3(0.125, 0.878, 0.753))); // 20E0C0, 
+
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Desert",			3.0 / 6.0, 4.0 / 6.0, 0.0 / 6.0, 1.0 / 6.0, fvec3(0.753, 0.753, 0.502))); // C0C080, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Desert Scrub",	3.0 / 6.0, 4.0 / 6.0, 1.0 / 6.0, 2.0 / 6.0, fvec3(0.627, 0.753, 0.502))); // A0C080, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Steppe",			3.0 / 6.0, 4.0 / 6.0, 2.0 / 6.0, 3.0 / 6.0, fvec3(0.502, 0.753, 0.502))); // 80C080, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Moist Forest",	3.0 / 6.0, 4.0 / 6.0, 3.0 / 6.0, 4.0 / 6.0, fvec3(0.376, 0.753, 0.502))); // 60C080, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Wet Forest",		3.0 / 6.0, 4.0 / 6.0, 4.0 / 6.0, 5.0 / 6.0, fvec3(0.251, 0.753, 0.565))); // 40C090, 
+	this->lifeZones.push_back(new LifeZone("Cool Temperate Rain Forest",	3.0 / 6.0, 4.0 / 6.0, 5.0 / 6.0, 6.0 / 6.0, fvec3(0.125, 0.753, 0.753))); // 20C0C0, 
+
+	this->lifeZones.push_back(new LifeZone("Boreal Desert",					2.0 / 6.0, 3.0 / 6.0, 0.0 / 5.0, 1.0 / 5.0, fvec3(0.627, 0.627, 0.502))); // A0A080, 
+	this->lifeZones.push_back(new LifeZone("Boreal Dry Scrub",				2.0 / 6.0, 3.0 / 6.0, 1.0 / 5.0, 2.0 / 5.0, fvec3(0.502, 0.627, 0.502))); // 80A080, 
+	this->lifeZones.push_back(new LifeZone("Boreal Moist Forest",			2.0 / 6.0, 3.0 / 6.0, 2.0 / 5.0, 3.0 / 5.0, fvec3(0.376, 0.627, 0.502))); // 60A080, 
+	this->lifeZones.push_back(new LifeZone("Boreal Wet Forest",				2.0 / 6.0, 3.0 / 6.0, 3.0 / 5.0, 4.0 / 5.0, fvec3(0.251, 0.627, 0.565))); // 40A090, 
+	this->lifeZones.push_back(new LifeZone("Boreal Rain Forest",			2.0 / 6.0, 3.0 / 6.0, 4.0 / 5.0, 5.0 / 5.0, fvec3(0.125, 0.627, 0.753))); // 20A0C0, 
+
+	this->lifeZones.push_back(new LifeZone("Subpolar Dry Tundra",			1.0 / 6.0, 2.0 / 6.0, 0.0 / 4.0, 1.0 / 4.0, fvec3(0.502, 0.502, 0.502))); // 808080, 
+	this->lifeZones.push_back(new LifeZone("Subpolar Moist Tundra",			1.0 / 6.0, 2.0 / 6.0, 1.0 / 4.0, 2.0 / 4.0, fvec3(0.376, 0.502, 0.502))); // 608080, 
+	this->lifeZones.push_back(new LifeZone("Subpolar Wet Tundra",			1.0 / 6.0, 2.0 / 6.0, 2.0 / 4.0, 3.0 / 4.0, fvec3(0.251, 0.502, 0.502))); // 408080, 
+	this->lifeZones.push_back(new LifeZone("Subpolar Rain Tundra",			1.0 / 6.0, 2.0 / 6.0, 3.0 / 4.0, 4.0 / 4.0, fvec3(0.125, 0.502, 0.753))); // 2080C0, 
+
+	this->lifeZones.push_back(new LifeZone("Polar Desert",					0.0 / 6.0, 1.0 / 6.0, 0.0 / 3.0, 1.0 / 3.0, fvec3(0.753, 0.753, 0.753))); // C0C0C0, 
+	this->lifeZones.push_back(new LifeZone("Polar Ice",						0.0 / 6.0, 1.0 / 6.0, 1.0 / 3.0, 2.0 / 3.0, fvec3(1.000, 1.000, 1.000))); // FFFFFF, 
+	this->lifeZones.push_back(new LifeZone("Polar Ice",						0.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0, 3.0 / 3.0, fvec3(1.000, 1.000, 1.000))); // FFFFFF, 
 
 	for (int i = 0; i < this->nodes.size(); i++) {
 		MapNode* n = this->nodes[i];
+		float temperature = glm::clamp(n->temperature * 1.7F - 0.7F, 0.0F, 1.0F);
+		float moisture = glm::clamp(n->moisture, 0.0F, 1.0F);
 
 		if (n->water) {
-			n->lifeZone = NULL;
+			if (temperature <= 0.0) {
+				n->lifeZone = this->lifeZones[this->lifeZones.size() - 1];
+			} else {
+				n->lifeZone = NULL;
+			}
 		} else {
-			double temperature = glm::clamp(n->temperature, 0.0, 1.0);
-			double moisture = glm::clamp(n->moisture, 0.0, 1.0);
 
 			for (int j = 0; j < this->lifeZones.size(); j++) {
 				LifeZone* zone = this->lifeZones[j];
 
 				if (temperature < zone->minTemperature) continue;
-				if (temperature >= zone->maxTemperature) continue;
+				if (temperature > zone->maxTemperature) continue;
 				if (moisture < zone->minMoisture) continue;
-				if (moisture >= zone->maxMoisture) continue;
+				if (moisture > zone->maxMoisture) continue;
 
 				n->lifeZone = zone;
 			}
@@ -658,13 +764,13 @@ void MapGenerator::initializeBiomes() {
 }
 
 void MapGenerator::generateDebugMeshes() {
-	std::vector<Vertex> surfaceVertices;
-	std::vector<Vertex> currentArrowVertices;
+	std::vector<Vertex> surfaceVertices; surfaceVertices.reserve(this->nodes.size() * 1);
+	std::vector<Vertex> currentArrowVertices; currentArrowVertices.reserve(this->nodes.size() * 3);
 
-	std::vector<uint32> surfaceTriangleIndices;
-	std::vector<uint32> surfaceLineIndices;
-	std::vector<uint32> currentTriangleIndices;
-	std::vector<uint32> currentLineIndices;
+	std::vector<uint32> surfaceTriangleIndices; surfaceTriangleIndices.reserve(this->faces.size() * 3);
+	std::vector<uint32> surfaceLineIndices; surfaceLineIndices.reserve(this->edges.size() * 2);
+	std::vector<uint32> currentTriangleIndices; currentTriangleIndices.reserve(this->nodes.size() * 3);
+	std::vector<uint32> currentLineIndices; currentLineIndices.reserve(this->nodes.size() * 6);
 
 	const int32 tgc = 6;
 	fvec3 tg[tgc] = {
@@ -676,6 +782,9 @@ void MapGenerator::generateDebugMeshes() {
 		fvec3(1.0F, 0.0F, 0.0F),
 	};
 
+	uint64 a, b, c;
+
+	a = Time::now();
 	for (int i = 0; i < this->nodes.size(); i++) {
 		MapNode* n = this->nodes[i];
 
@@ -688,20 +797,20 @@ void MapGenerator::generateDebugMeshes() {
 		//fvec3 colour = glm::catmullRom(tg[i0], tg[i1], tg[i2], tg[i3], glm::fract(f));
 		fvec3 colour = n->lifeZone != NULL ? n->lifeZone->colour : fvec3(0.2, 0.3, 0.9);// fvec3(n->temperature, n->moisture, 0.0);
 
-		surfaceVertices.push_back(Vertex(n->p * planet->getRadius(), fvec3(0.0), fvec2(0.0), colour));
+		surfaceVertices.push_back(Vertex(n->p * float(planet->getRadius()), fvec3(0.0), fvec2(0.0), colour));
 
 		// current arrows
 
 		if (true || dot(n->windVector, n->windVector) > 1e-12) {
 
-			double magnitude = n->windStrength;
-			dvec3 direction = n->windVector;
-			dvec3 side = normalize(cross(direction, n->p));
+			float magnitude = n->windStrength;
+			fvec3 direction = n->windVector;
+			fvec3 side = normalize(cross(direction, n->p));
 			int32 baseIndex = currentArrowVertices.size();
-			double size = glm::min(sqrt(magnitude), 8.0);
-			currentArrowVertices.push_back(Vertex(n->p * planet->getRadius() * 1.0001 + side * 3.0 * size));
-			currentArrowVertices.push_back(Vertex(n->p * planet->getRadius() * 1.0001 - side * 3.0 * size));
-			currentArrowVertices.push_back(Vertex(n->p * planet->getRadius() * 1.0001 + direction * 20.0 * size));
+			float size = glm::min(sqrt(magnitude), 8.0F);
+			currentArrowVertices.push_back(Vertex(n->p * float(planet->getRadius()) * 1.0001F + side * 3.0F * size));
+			currentArrowVertices.push_back(Vertex(n->p * float(planet->getRadius()) * 1.0001F - side * 3.0F * size));
+			currentArrowVertices.push_back(Vertex(n->p * float(planet->getRadius()) * 1.0001F + direction * 20.0F * size));
 
 			currentTriangleIndices.push_back(baseIndex + 0);
 			currentTriangleIndices.push_back(baseIndex + 1);
@@ -715,19 +824,27 @@ void MapGenerator::generateDebugMeshes() {
 			currentLineIndices.push_back(baseIndex + 0);
 		}
 	}
+	b = Time::now();
+	logInfo("Took %f ms to create debug mesh vertices", (b - a) / 1000000.0);
 
+	a = Time::now();
 	for (int i = 0; i < this->edges.size(); i++) {
 		MapEdge* e = this->edges[i];
 		surfaceLineIndices.push_back(e->n[0]);
 		surfaceLineIndices.push_back(e->n[1]);
 	}
+	b = Time::now();
+	logInfo("Took %f ms to create debug mesh edge indices", (b - a) / 1000000.0);
 
+	a = Time::now();
 	for (int i = 0; i < this->faces.size(); i++) {
 		MapFace* f = this->faces[i];
 		surfaceTriangleIndices.push_back(f->n[0]);
 		surfaceTriangleIndices.push_back(f->n[1]);
 		surfaceTriangleIndices.push_back(f->n[2]);
 	}
+	b = Time::now();
+	logInfo("Took %f ms to create debug mesh face indices", (b - a) / 1000000.0);
 
 	VertexLayout vertexLayout = VertexLayout(44, {
 		VertexAttribute(0, 3, 0),
@@ -744,19 +861,35 @@ void MapGenerator::generateDebugMeshes() {
 		}
 	);
 
+	a = Time::now();
 	MeshData* surfaceTriangleMeshData = new MeshData(surfaceVertices, surfaceTriangleIndices, vertexLayout);
+	b = Time::now();
 	this->debugSurfaceTriangleMesh = new GLMesh(surfaceTriangleMeshData, vertexLayout);
+	c = Time::now();
+	logInfo("Took %f ms to create debug triangle mesh data, %f ms to upload to video memory", (b - a) / 1000000.0, (c - b) / 1000000.0);
 
+	a = Time::now();
 	MeshData* surfaceLineMeshData = new MeshData(surfaceVertices, surfaceLineIndices, vertexLayout);
+	b = Time::now();
 	this->debugSurfaceLineMesh = new GLMesh(surfaceLineMeshData, vertexLayout);
 	this->debugSurfaceLineMesh->setPrimitive(LINES);
+	c = Time::now();
+	logInfo("Took %f ms to create debug surface line mesh data, %f ms to upload to video memory", (b - a) / 1000000.0, (c - b) / 1000000.0);
 
+	a = Time::now();
 	MeshData* currentTriangleMeshData = new MeshData(currentArrowVertices, currentTriangleIndices, vertexLayout);
+	b = Time::now();
 	this->debugCurrentTriangleMesh = new GLMesh(currentTriangleMeshData, vertexLayout);
+	c = Time::now();
+	logInfo("Took %f ms to create debug wind current triangle mesh data, %f ms to upload to video memory", (b - a) / 1000000.0, (c - b) / 1000000.0);
 
+	a = Time::now();
 	MeshData* currentLineMeshData = new MeshData(currentArrowVertices, currentLineIndices, vertexLayout);
+	b = Time::now();
 	this->debugCurrentLineMesh = new GLMesh(currentLineMeshData, vertexLayout);
 	this->debugCurrentLineMesh->setPrimitive(LINES);
+	c = Time::now();
+	logInfo("Took %f ms to create debug wind current line mesh data, %f ms to upload to video memory", (b - a) / 1000000.0, (c - b) / 1000000.0);
 
 	delete surfaceTriangleMeshData;
 	delete surfaceLineMeshData;
@@ -769,17 +902,112 @@ void MapGenerator::render(double partialTicks, double dt) {
 		DEBUG_RENDERER.setLightingEnabled(false);
 		DEBUG_RENDERER.setColour(fvec4(1.0F, 1.0F, 1.0F, 1.0F));
 		DEBUG_RENDERER.renderMesh(this->debugSurfaceTriangleMesh);
+
+		if (this->debugClosestWalkMesh != NULL && this->debugClosestWalk.size() > 1) {
+			DEBUG_RENDERER.setLineSize(5.0F);
+			DEBUG_RENDERER.setColour(fvec4(0.1F, 0.1F, 0.1F, 1.0F));
+			DEBUG_RENDERER.renderMesh(this->debugClosestWalkMesh);
+		}
 	}
 
 	if (this->renderDebugCurrents) {
 		DEBUG_RENDERER.setLightingEnabled(false);
-		DEBUG_RENDERER.setColour(fvec4(1.0F, 1.0F, 1.0F, 1.0F));
-		DEBUG_RENDERER.renderMesh(this->debugCurrentTriangleMesh);
+		//DEBUG_RENDERER.setColour(fvec4(1.0F, 1.0F, 1.0F, 1.0F));
+		//DEBUG_RENDERER.renderMesh(this->debugCurrentTriangleMesh);
 
 		DEBUG_RENDERER.setLineSize(1.0F);
 		DEBUG_RENDERER.setColour(fvec4(0.25F, 0.25F, 0.25F, 1.0F));
-		DEBUG_RENDERER.renderMesh(this->debugCurrentLineMesh);
+		//DEBUG_RENDERER.renderMesh(this->debugCurrentLineMesh);
+		DEBUG_RENDERER.renderMesh(this->debugSurfaceLineMesh);
 	}
+}
+
+MapNode* MapGenerator::getClosestMapNode(dvec3 point) {
+	// Idea: choose a random point on the sphere, and walk in the direction of the point to find, until no direction yields a closer vertex.
+	// This should avoid iterating every single vertex.
+
+	uint64 a = Time::now();
+	int32 currIndex = 10000;// rand() % this->nodes.size(); // random start point.
+	MapNode* currNode = this->nodes[currIndex];
+	double currDist = glm::distance2(dvec3(currNode->p), point);
+
+	this->debugClosestWalk.clear();
+
+	int32 steps = 0;
+
+	while (true) {
+		if (currNode == NULL) {
+			break;
+		}
+
+		this->debugClosestWalk.push_back(currIndex);
+
+		bool flag = false;
+
+		for (int i = 0; i < currNode->e.size(); i++) {
+			MapEdge* edge = this->edges[currNode->e[i]];
+			int32 neighbourIndex = (currNode == this->nodes[edge->n[0]]) ? edge->n[1] : edge->n[0];
+			MapNode* neighbourNode = this->nodes[neighbourIndex];
+
+			double neighbourDist = glm::distance2(dvec3(neighbourNode->p), point);
+
+			if (neighbourDist < currDist) {
+				currDist = neighbourDist;
+				currNode = neighbourNode;
+				currIndex = neighbourIndex;
+				flag = true;
+			}
+		}
+
+		if (!flag) {
+			break; // No closer nodes were found. This is the closest.
+		}
+
+		steps++;
+	}
+	uint64 b = Time::now();
+
+	logInfo("Took %f ms to find closest node in %d steps", (b - a) / 1000000.0, steps);
+
+	if (this->debugClosestWalk.size() > 1) {
+		VertexLayout vertexLayout = VertexLayout(44, {
+			VertexAttribute(0, 3, 0),
+			VertexAttribute(1, 3, 12),
+			VertexAttribute(2, 2, 24),
+			VertexAttribute(3, 3, 32)
+			}, [](Vertex v) -> std::vector<float> {
+				return std::vector<float> {
+					float(v.position.x), float(v.position.y), float(v.position.z),
+						float(v.normal.x), float(v.normal.y), float(v.normal.z),
+						float(v.texture.x), float(v.texture.y),
+						float(v.colour.r), float(v.colour.g), float(v.colour.b)
+				};
+			}
+		);
+
+		std::vector<Vertex> vertices;
+		std::vector<uint32> indices;
+
+		for (int i = 0; i < this->debugClosestWalk.size(); i++) {
+			MapNode* n = this->nodes[this->debugClosestWalk[i]];
+			vertices.push_back(Vertex(n->p * float(planet->getRadius()) * 1.0001F));
+
+			if (i > 0) {
+				indices.push_back(i - 0);
+				indices.push_back(i - 1);
+			}
+		}
+
+		MeshData* closestWalkMeshData = new MeshData(vertices, indices, vertexLayout);
+		if (this->debugClosestWalkMesh == NULL) {
+			this->debugClosestWalkMesh = new GLMesh(closestWalkMeshData, vertexLayout);
+			this->debugClosestWalkMesh->setPrimitive(LINES);
+		} else {
+			this->debugClosestWalkMesh->uploadMeshData(closestWalkMeshData);
+		}
+	}
+
+	return currNode;
 }
 
 void MapGenerator::setRenderDebugCurrents(bool renderDebugCurrents) {
@@ -796,4 +1024,12 @@ void MapGenerator::setRenderDebugSurface(bool renderDebugSurface) {
 
 bool MapGenerator::doRenderDebugSurface() const {
 	return this->renderDebugSurface;
+}
+
+void MapGenerator::setDebugSurfaceRenderMode(int renderMode) {
+	this->debugSurfaceRenderMode = renderMode % 3;
+}
+
+int MapGenerator::getDebugSurfaceRenderMode() const {
+	return this->debugSurfaceRenderMode;
 }

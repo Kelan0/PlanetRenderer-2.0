@@ -192,3 +192,7 @@ void DebugRenderer::renderMesh(GLMesh* mesh) {
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 }
+
+ShaderProgram* DebugRenderer::getDebugShader() const {
+	return this->debugShader;
+}

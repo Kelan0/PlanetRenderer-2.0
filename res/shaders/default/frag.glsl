@@ -17,6 +17,7 @@ uniform float farPlane;
 uniform float scaleFactor;
 uniform bool lightingEnabled;
 uniform bool showMoisture;
+uniform int debugSurfaceRenderMode;
 
 out vec3 outDiffuse;
 out vec3 outGlow;
@@ -35,7 +36,7 @@ vec3 catmullRom(vec3 v1, vec3 v2, vec3 v3, vec3 v4, float s) {
     return (f1 * v1 + f2 * v2 + f3 * v3 + f4 * v4) * 0.5;
 }
 
-void main(void) {
+vec3 getMappedColourGradient(float data) {
 	const int tgc = 6;
 	const vec3 tg[tgc] = vec3[tgc](
 		vec3(0.5, 0.0, 1.0),
@@ -46,14 +47,20 @@ void main(void) {
 		vec3(1.0, 0.0, 0.0)
     );
 
-    float data = fs_vertexColour.r;
     float f = data * (float(tgc) - 1.0);
     int i0 = int(clamp(f - 1.0, 0.0, float(tgc) - 1.0));
     int i1 = int(clamp(f - 0.0, 0.0, float(tgc) - 1.0));
     int i2 = int(clamp(f + 1.0, 0.0, float(tgc) - 1.0));
     int i3 = int(clamp(f + 2.0, 0.0, float(tgc) - 1.0));
-	vec3 dataColour = catmullRom(tg[i0], tg[i1], tg[i2], tg[i3], fract(f));
+	return catmullRom(tg[i0], tg[i1], tg[i2], tg[i3], fract(f));
+}
+
+void main(void) {
     
+    //if (debugSurfaceRenderMode == 1) {
+    //    outDiffuse = colour.rgb * getMappedColourGradient;
+    //}
+
     outDiffuse = colour.rgb * fs_vertexColour.rgb;
 
     if (lightingEnabled) {

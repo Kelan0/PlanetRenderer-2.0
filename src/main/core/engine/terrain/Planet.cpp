@@ -200,6 +200,15 @@ void Planet::update(SceneGraph * sceneGraph, double dt) {
 	if (INPUT_HANDLER.keyPressed(KEY_F6)) {
 		this->renderDebugQuadBounds = !this->renderDebugQuadBounds;
 	}
+
+	double intersectDist;
+
+	int32 w, h; Application::getWindowSize(&w, &h);
+	Ray localRay = SCENE_GRAPH.getCamera()->getPickingRay((INPUT_HANDLER.getMousePosition() / fvec2(w, h)) * 2.0F - 1.0F);
+	if (IntersectionTests::raySphereIntersection(localRay, dvec3(0.0), this->radius, false, &intersectDist)) {
+		dvec3 intersectionPoint = localRay.orig + localRay.dir * intersectDist;
+		this->mapGenerator->getClosestMapNode(intersectionPoint);
+	}
 }
 
 void Planet::applyUniforms(ShaderProgram * program) {

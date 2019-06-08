@@ -147,9 +147,9 @@ float getHeight(vec3 coord) {
     canyonMultiplier = pow(1.0 - abs(clamp(largeFeatures - mountainMultiplier, -1.0, 1.0)), 8.0) * min(abs(largeFeatures) * 10.0, 1.0);
     
     if (largeFeatures > 0.0) {
-        if (largeFeatures > 0.05) {
-            largeFeatures = 0.05;// + (largeFeatures - 0.6) * 0.2;
-        }
+        //if (largeFeatures > 0.05) {
+        //    largeFeatures *= 0.1;// + (largeFeatures - 0.6) * 0.2;
+        //}
     }
 
     float height = largeFeatures + smallFeatures + tinyFeatures + mountainMultiplier * mountainFeatures + canyonMultiplier * canyonFeatures;
