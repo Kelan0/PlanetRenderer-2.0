@@ -259,7 +259,7 @@ TileSupplier::TileSupplier(Planet* planet, uint32 seed, uint32 textureCapacity, 
 
 	this->maxAsyncReadbacks = 10;
 	this->asyncReadbackSlots = new AsyncReadbackRequest*[this->maxAsyncReadbacks];
-	this->asyncReadbackTimeout = 3.0; // Timeout after 3 second.
+	this->asyncReadbackTimeout = 99999.0; // Timeout after 3 second.
 
 	for (int i = 0; i < this->maxAsyncReadbacks; i++) {
 		this->asyncReadbackSlots[i] = NULL;
@@ -445,15 +445,13 @@ void TileSupplier::update() {
 					expiredTiles.push_back(tile);
 					this->numTilesExpired++;
 				}
-			}
-			else {
+			} else {
 				flag = true; // Null tile... somehow... erase it. Maybe this should be an assertion
 			}
 
 			if (flag) {
 				aci = this->activeTiles.erase(aci);
-			}
-			else {
+			} else {
 				aci++;
 			}
 		}
@@ -549,6 +547,7 @@ void TileSupplier::update() {
 				this->textureReadbackQueue.pop_back();
 				if (tile != NULL && tile->awaitingReadbackRequest) {
 					tile->awaitingReadbackRequest = false;
+					tile->awaitingReadbackResponse = true;
 		
 					int32 err = 0;
 		
@@ -563,6 +562,7 @@ void TileSupplier::update() {
 					request->requestTime = Time::now();
 					request->tile = tile;
 					request->sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+					request->cancelled = false;
 	
 					this->asyncReadbackSlots[readbackIndex] = request;
 				}
@@ -572,39 +572,49 @@ void TileSupplier::update() {
 		for (int i = 0; i < this->maxAsyncReadbacks; i++) {
 			AsyncReadbackRequest* request = this->asyncReadbackSlots[i];
 			if (request != NULL) {
-				int32 result;
-				glGetSynciv(request->sync, GL_SYNC_STATUS, sizeof(result), NULL, &result);
-		
-				if (result == GL_SIGNALED) {
-					glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pixelTransferBuffer);
-					uint32 readSize = this->tileSize * this->tileSize * sizeof(float) * 4;
-					uint32 offset = i * readSize;
-					float* data = static_cast<float*>(glMapBufferRange(GL_PIXEL_PACK_BUFFER, offset, readSize, GL_MAP_READ_BIT));
-		
-					if (request->tile->textureData == NULL) {
-						request->tile->textureData = new float[this->tileSize * this->tileSize * 4];
-					}
-					
-					std::memcpy(request->tile->textureData, data, readSize);
-					
-					// ================= REMOVE THIS =================
-					glTextureSubImage3D(this->textureArray, 0, 0, 0, request->tile->textureIndex, this->getTileSize(), this->getTileSize(), 1, GL_RGBA, GL_FLOAT, data); // debug test
-					// ===============================================
-
-					request->tile->onReadbackReceived();
-					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-		
+				if (request->cancelled) {
+					request->tile->awaitingReadbackResponse = false;
 					glDeleteSync(request->sync);
 					delete request;
 					this->asyncReadbackSlots[i] = NULL;
-				}  else {
-					if (Time::time_cast<Time::time_unit, Time::seconds, double>(Time::now() - request->requestTime) > this->asyncReadbackTimeout) {
+				} else {
+					int32 result;
+					glGetSynciv(request->sync, GL_SYNC_STATUS, sizeof(result), NULL, &result);
+
+					if (result == GL_SIGNALED) {
+
+						glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pixelTransferBuffer);
+						uint32 readSize = this->tileSize * this->tileSize * sizeof(float) * 4;
+						uint32 offset = i * readSize;
+						float* data = static_cast<float*>(glMapBufferRange(GL_PIXEL_PACK_BUFFER, offset, readSize, GL_MAP_READ_BIT));
+
+						if (request->tile->textureData == NULL) {
+							request->tile->textureData = new float[this->tileSize * this->tileSize * 4];
+						}
+
+						std::memcpy(request->tile->textureData, data, readSize);
+
+						//// ================= REMOVE THIS =================
+						//glTextureSubImage3D(this->textureArray, 0, 0, 0, request->tile->textureIndex, this->getTileSize(), this->getTileSize(), 1, GL_RGBA, GL_FLOAT, data); // debug test
+						//// ===============================================
+
+						request->tile->onReadbackReceived();
+						glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+
+						request->tile->awaitingReadbackResponse = false;
 						glDeleteSync(request->sync);
 						delete request;
 						this->asyncReadbackSlots[i] = NULL;
-		
-						logInfo("Async texture readback timed out");
-						// maybe notify the tile of the cancelled request?
+					} else {
+						if (Time::time_cast<Time::time_unit, Time::seconds, double>(Time::now() - request->requestTime) > this->asyncReadbackTimeout) {
+							request->tile->awaitingReadbackResponse = false;
+							glDeleteSync(request->sync);
+							delete request;
+							this->asyncReadbackSlots[i] = NULL;
+
+							logInfo("Async texture readback timed out");
+							// maybe notify the tile of the cancelled request?
+						}
 					}
 				}
 			}
@@ -742,6 +752,39 @@ bool TileSupplier::putTileData(TileData** store) {
 		TileData* tile = *store;
 
 		if (tile != NULL) {
+			if (tile->awaitingGeneration) {
+				auto it = std::find(this->textureGenerationQueue.begin(), this->textureGenerationQueue.end(), tile);
+				if (it != this->textureGenerationQueue.end()) {
+					this->textureGenerationQueue.erase(it);
+					//logInfo("Released tile erased from texture generation queue");
+				}
+			}
+
+			if (tile->awaitingReadbackRequest) {
+				auto it = std::find(this->textureReadbackQueue.begin(), this->textureReadbackQueue.end(), tile);
+				if (it != this->textureReadbackQueue.end()) {
+					this->textureReadbackQueue.erase(it);
+					//logInfo("Released tile erased from texture readback queue");
+				}
+			}
+
+			if (tile->awaitingReadbackResponse) {
+				bool flag = false;
+				for (int i = 0; i < this->maxAsyncReadbacks; i++) {
+					AsyncReadbackRequest* request = this->asyncReadbackSlots[i];
+
+					if (request != NULL && request->tile == tile) {
+						request->cancelled = true;
+						flag = true;
+						break;
+					}
+				}
+
+				if (!flag) {
+					//logError("Tile awaiting asynchronous texture readback response was freed, but the readback request could not be cancelled.");
+				}
+			}
+
 			auto it = std::find(tile->references.begin(), tile->references.end(), store);
 
 			if (it != tile->references.end()) {

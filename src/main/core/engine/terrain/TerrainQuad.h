@@ -57,9 +57,12 @@ private:
 
 	bool occluded; // True if this quad is occluded or behind the horizon.
 	bool changed; // True if this quad changed in the previous frame, and needs to be re-rendered
-	bool neighbourChanged;
+	bool neighbourChanged; // True when one of the neighbours of this quad changed.
+	bool renderLeaf; // True if this node is a leaf in the renderable portion of the tree. If a node does not yet have fully generated TileData, it should not be rendered.
 
 	void setNeighbours(TerrainQuad* left, TerrainQuad* top, TerrainQuad* right, TerrainQuad* bottom);
+
+	int buildRenderTree();
 
 	TerrainQuad(Planet* planet, CubeFace face, TerrainQuad* parent, QuadIndex quadIndex, dvec2 facePosition, uvec2 treePosition, float minHeight, float maxHeight, bool occluded);
 

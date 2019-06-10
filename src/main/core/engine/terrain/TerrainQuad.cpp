@@ -77,6 +77,13 @@ void TerrainQuad::setNeighbours(TerrainQuad* left, TerrainQuad* top, TerrainQuad
 	//bottom->neighbours[TOP] = this;
 }
 
+int TerrainQuad::buildRenderTree() {
+	this->renderLeaf = true;
+
+
+	return 0;
+}
+
 void TerrainQuad::init() {
 
 	const double xmin = this->facePosition.x - this->size * 0.5;
@@ -145,7 +152,11 @@ void TerrainQuad::update(double dt) {
 		distanceSq = glm::min(distanceSq, glm::distance2(this->deformedBounds->getCorner((FrustumCorner)i), cameraPosition));
 	}
 
-	double threshold = this->size * 3.0;
+	double dynamicFactorMin = 0.1;
+	double dynamicFactorMax = 0.3;
+	double dynamicFactor = 0.5;// ((Planet::maxScaleFactor - Planet::scaleFactor) / (Planet::maxScaleFactor - Planet::minScaleFactor));
+
+	double threshold = (this->size * 3.0) * 0.25;
 
 	if (this->face == this->planet->closestCameraFace) {
 		if (distanceSq < this->planet->closestCameraDistance) {
@@ -188,6 +199,13 @@ void TerrainQuad::update(double dt) {
 			this->init();
 		}
 	}
+
+	// Start at root.
+	//
+	// Mark this as a render node.
+	// If all children have valid tile data
+	//     Unmark this as render node
+	//     Traverse down to children.
 }
 
 bool TerrainQuad::split() {
@@ -515,30 +533,7 @@ bool TerrainQuad::isLeaf() const {
 }
 
 bool TerrainQuad::isRenderLeaf() {
-	return this->isLeaf();
-	////	If all children are renderable,
-	////		return false. This is not a render leaf, as all children can be rendered.
-	////	Else
-	////		If this is renderable,
-	////			return true, and render this until all children can be rendered.
-	////		Else
-	////			return false
-	//
-	//if (this->isLeaf()) {
-	//	return this->isRenderable();
-	//}
-	//
-	//return false;
-	//
-	////// If all children are renderable
-	////if (this->children[TOP_LEFT]->isRenderLeaf() &&
-	////	this->children[TOP_RIGHT]->isRenderLeaf() &&
-	////	this->children[BOTTOM_LEFT]->isRenderLeaf() &&
-	////	this->children[BOTTOM_RIGHT]->isRenderLeaf()) {
-	////	return false;
-	////} else { // Any child cannot be rendered, and would cause a world hole.
-	////	return this->isRenderable();
-	////}
+	return this->renderLeaf;
 }
 
 bool TerrainQuad::isRenderable() {
@@ -699,7 +694,7 @@ TileData* TerrainQuad::getTileData(fvec2* tilePosition, fvec2* tileSize, bool us
 				if (this->quadIndex == TOP_RIGHT) * tilePosition += fvec2(0.0, 1.0) * (*tileSize);
 				if (this->quadIndex == TOP_LEFT) * tilePosition += fvec2(1.0, 1.0) * (*tileSize);
 			}
-			tile = this->parent->getTileData(tilePosition, tileSize, true);
+			tile = this->parent->tileData;// this->parent->getTileData(tilePosition, tileSize, true);
 		}
 	}
 

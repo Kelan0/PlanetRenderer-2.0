@@ -61,7 +61,7 @@ public:
 
 	void render(double partialTicks, double dt);
 
-	MapNode* getClosestMapNode(dvec3 point);
+	MapNode* getClosestMapNode(dvec3 point, int startPoint = -1);
 
 	void setRenderDebugCurrents(bool renderDebugCurrents);
 
@@ -81,6 +81,7 @@ struct MapNode {
 	std::vector<int32> e; // The edges connected to this node.
 	std::vector<int32> f; // The faces connected to this node.
 	std::vector<float> c; // The air current strengths to each connected node.
+	int32 index;
 
 	LifeZone* lifeZone;
 

@@ -18,35 +18,35 @@ MapGenerator::MapGenerator(Planet* planet, uint32 resolution) {
 
 	uint64 a, b;
 
-	a = Time::now();
-	this->generateIcosohedron();
-	b = Time::now();
-	logInfo("Took %f ms to generate map geometry with %d nodes", (b - a) / 1000000.0, this->nodes.size());
-
-	a = Time::now();
-	this->generateAirCurrents();
-	b = Time::now();
-	logInfo("Took %f ms to generate air currents", (b - a) / 1000000.0);
-
-	a = Time::now();
-	this->initializeHeat();
-	b = Time::now();
-	logInfo("Took %f ms to initialize node temperature", (b - a) / 1000000.0);
-
-	a = Time::now();
-	this->initializeMoisture();
-	b = Time::now();
-	logInfo("Took %f ms to initialize node moisture", (b - a) / 1000000.0);
-
-	a = Time::now();
-	this->initializeBiomes();
-	b = Time::now();
-	logInfo("Took %f ms to initialize node biomes", (b - a) / 1000000.0);
-
-	a = Time::now();
-	this->generateDebugMeshes();
-	b = Time::now();
-	logInfo("Took %f ms to generate debug geometry", (b - a) / 1000000.0);
+	//a = Time::now();
+	//this->generateIcosohedron();
+	//b = Time::now();
+	//logInfo("Took %f ms to generate map geometry with %d nodes", (b - a) / 1000000.0, this->nodes.size());
+	//
+	//a = Time::now();
+	//this->generateAirCurrents();
+	//b = Time::now();
+	//logInfo("Took %f ms to generate air currents", (b - a) / 1000000.0);
+	//
+	//a = Time::now();
+	//this->initializeHeat();
+	//b = Time::now();
+	//logInfo("Took %f ms to initialize node temperature", (b - a) / 1000000.0);
+	//
+	//a = Time::now();
+	//this->initializeMoisture();
+	//b = Time::now();
+	//logInfo("Took %f ms to initialize node moisture", (b - a) / 1000000.0);
+	//
+	//a = Time::now();
+	//this->initializeBiomes();
+	//b = Time::now();
+	//logInfo("Took %f ms to initialize node biomes", (b - a) / 1000000.0);
+	//
+	//a = Time::now();
+	//this->generateDebugMeshes();
+	//b = Time::now();
+	//logInfo("Took %f ms to generate debug geometry", (b - a) / 1000000.0);
 
 }
 
@@ -311,6 +311,7 @@ void MapGenerator::generateIcosohedron() {
 
 	for (int i = 0; i < nodes.size(); i++) {
 		MapNode* n = nodes[i];
+		n->index = i;
 
 		// Area = planet surface area / number of nodes. Fairly crude approximation.
 		n->area = (4.0 * PI * this->planet->getRadius() * this->planet->getRadius()) / nodes.size();
@@ -854,9 +855,9 @@ void MapGenerator::generateDebugMeshes() {
 		}, [](Vertex v) -> std::vector<float> {
 			return std::vector<float> {
 				float(v.position.x), float(v.position.y), float(v.position.z),
-					float(v.normal.x), float(v.normal.y), float(v.normal.z),
-					float(v.texture.x), float(v.texture.y),
-					float(v.colour.r), float(v.colour.g), float(v.colour.b)
+				float(v.normal.x), float(v.normal.y), float(v.normal.z),
+				float(v.texture.x), float(v.texture.y),
+				float(v.colour.r), float(v.colour.g), float(v.colour.b)
 			};
 		}
 	);
@@ -922,25 +923,18 @@ void MapGenerator::render(double partialTicks, double dt) {
 	}
 }
 
-MapNode* MapGenerator::getClosestMapNode(dvec3 point) {
-	// Idea: choose a random point on the sphere, and walk in the direction of the point to find, until no direction yields a closer vertex.
+MapNode* MapGenerator::getClosestMapNode(dvec3 point, int startPoint) {
+	// choose a random point on the sphere, and walk in the direction of the point to find, until no direction yields a closer vertex.
 	// This should avoid iterating every single vertex.
 
-	uint64 a = Time::now();
-	int32 currIndex = 10000;// rand() % this->nodes.size(); // random start point.
+	int32 currIndex = (startPoint < 0 || startPoint >= this->nodes.size()) ? (rand() % this->nodes.size()) : startPoint; // random start point if none is specified
 	MapNode* currNode = this->nodes[currIndex];
 	double currDist = glm::distance2(dvec3(currNode->p), point);
-
-	this->debugClosestWalk.clear();
-
-	int32 steps = 0;
 
 	while (true) {
 		if (currNode == NULL) {
 			break;
 		}
-
-		this->debugClosestWalk.push_back(currIndex);
 
 		bool flag = false;
 
@@ -961,49 +955,6 @@ MapNode* MapGenerator::getClosestMapNode(dvec3 point) {
 
 		if (!flag) {
 			break; // No closer nodes were found. This is the closest.
-		}
-
-		steps++;
-	}
-	uint64 b = Time::now();
-
-	logInfo("Took %f ms to find closest node in %d steps", (b - a) / 1000000.0, steps);
-
-	if (this->debugClosestWalk.size() > 1) {
-		VertexLayout vertexLayout = VertexLayout(44, {
-			VertexAttribute(0, 3, 0),
-			VertexAttribute(1, 3, 12),
-			VertexAttribute(2, 2, 24),
-			VertexAttribute(3, 3, 32)
-			}, [](Vertex v) -> std::vector<float> {
-				return std::vector<float> {
-					float(v.position.x), float(v.position.y), float(v.position.z),
-						float(v.normal.x), float(v.normal.y), float(v.normal.z),
-						float(v.texture.x), float(v.texture.y),
-						float(v.colour.r), float(v.colour.g), float(v.colour.b)
-				};
-			}
-		);
-
-		std::vector<Vertex> vertices;
-		std::vector<uint32> indices;
-
-		for (int i = 0; i < this->debugClosestWalk.size(); i++) {
-			MapNode* n = this->nodes[this->debugClosestWalk[i]];
-			vertices.push_back(Vertex(n->p * float(planet->getRadius()) * 1.0001F));
-
-			if (i > 0) {
-				indices.push_back(i - 0);
-				indices.push_back(i - 1);
-			}
-		}
-
-		MeshData* closestWalkMeshData = new MeshData(vertices, indices, vertexLayout);
-		if (this->debugClosestWalkMesh == NULL) {
-			this->debugClosestWalkMesh = new GLMesh(closestWalkMeshData, vertexLayout);
-			this->debugClosestWalkMesh->setPrimitive(LINES);
-		} else {
-			this->debugClosestWalkMesh->uploadMeshData(closestWalkMeshData);
 		}
 	}
 

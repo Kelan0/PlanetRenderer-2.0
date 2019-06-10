@@ -47,7 +47,7 @@ void init() {
 	//})));
 
 	float r = 6000;
-	planet = new Planet(fvec3(), r, 2.0F, 24);
+	planet = new Planet(fvec3(), r, 2.0F, 20);
 	SCENE_GRAPH.getRoot()->addChild("planet", planet);
 	SCENE_GRAPH.getCamera()->setPosition(normalize(fvec3(0.0F, 1.0, -0.6)) * (r + 20.0F));
 

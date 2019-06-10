@@ -27,7 +27,7 @@ Planet::Planet(dvec3 center, double radius, double splitThreshold, int32 maxSpli
 	GameObject(), center(center), radius(radius), invRadius(1.0 / radius), splitThreshold(splitThreshold), maxSplitDepth(maxSplitDepth) {
 
 	this->tileSupplier = new TileSupplier(this);
-	this->terrainRenderer = new TerrainRenderer(8);
+	this->terrainRenderer = new TerrainRenderer(16);
 	this->atmosphere = new Atmosphere(this);
 
 	this->faceOrientations[X_NEG][0] = fvec3(0, 0, +1);
@@ -175,8 +175,11 @@ void Planet::update(SceneGraph * sceneGraph, double dt) {
 	double base = 3.0F;
 	double logDist = glm::log(glm::max(altitude, 0.000001)) / glm::log(base);
 
+	double nextScaleFactor = glm::clamp(glm::pow(base, base - logDist), Planet::minScaleFactor, Planet::maxScaleFactor);
+	double scaleRate = 0.1;
+
 	Planet::prevScaleFactor = currScaleFactor;
-	Planet::currScaleFactor = glm::clamp(glm::pow(base, base - logDist), Planet::minScaleFactor, Planet::maxScaleFactor);
+	Planet::currScaleFactor = prevScaleFactor * (1.0 - scaleRate) + nextScaleFactor * scaleRate;
 	uint64 b = Time::now();
 	//logInfo("Took %f ms to update terrain", (b - a) / 1000000.0);
 
@@ -201,14 +204,18 @@ void Planet::update(SceneGraph * sceneGraph, double dt) {
 		this->renderDebugQuadBounds = !this->renderDebugQuadBounds;
 	}
 
-	double intersectDist;
 
-	int32 w, h; Application::getWindowSize(&w, &h);
-	Ray localRay = SCENE_GRAPH.getCamera()->getPickingRay((INPUT_HANDLER.getMousePosition() / fvec2(w, h)) * 2.0F - 1.0F);
-	if (IntersectionTests::raySphereIntersection(localRay, dvec3(0.0), this->radius, false, &intersectDist)) {
-		dvec3 intersectionPoint = localRay.orig + localRay.dir * intersectDist;
-		this->mapGenerator->getClosestMapNode(intersectionPoint);
-	}
+	//double intersectDist;
+	//int32 w, h; Application::getWindowSize(&w, &h);
+	//Ray localRay = SCENE_GRAPH.getCamera()->getPickingRay((INPUT_HANDLER.getMousePosition() / fvec2(w, h)) * 2.0F - 1.0F);
+	//if (IntersectionTests::raySphereIntersection(localRay, dvec3(0.0), this->radius, false, &intersectDist)) {
+	//	dvec3 intersectionPoint = localRay.orig + localRay.dir * intersectDist;
+	//	uint64 a = Time::now();
+	//	closestNode = this->mapGenerator->getClosestMapNode(intersectionPoint, closestNode != NULL ? closestNode->index : -1);
+	//	uint64 b = Time::now();
+	//
+	//	logInfo("Took %f ms to find closest point", (b - a) / 1000000.0);
+	//}
 }
 
 void Planet::applyUniforms(ShaderProgram * program) {

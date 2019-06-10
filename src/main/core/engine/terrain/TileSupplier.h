@@ -116,6 +116,7 @@ struct AsyncReadbackRequest {
 	uint64 requestTime;
 	TileData* tile;
 	GLsync sync;
+	bool cancelled;
 };
 
 class TileSupplier {
@@ -179,7 +180,7 @@ private:
 	void markIdle(TileData* tile);
 
 public:
-	TileSupplier(Planet* planet, uint32 seed = 1337, uint32 textureCapacity = 0, uint32 textureSize = 64);
+	TileSupplier(Planet* planet, uint32 seed = 1337, uint32 textureCapacity = 0, uint32 textureSize = 128);
 
 	~TileSupplier();
 
